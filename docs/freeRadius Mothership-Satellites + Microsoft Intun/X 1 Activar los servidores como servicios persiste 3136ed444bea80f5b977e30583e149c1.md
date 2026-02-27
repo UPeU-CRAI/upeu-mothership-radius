@@ -1,1 +1,0 @@
-# X 1. Activar los servidores como servicios persistentes (systemctl start freeradius).

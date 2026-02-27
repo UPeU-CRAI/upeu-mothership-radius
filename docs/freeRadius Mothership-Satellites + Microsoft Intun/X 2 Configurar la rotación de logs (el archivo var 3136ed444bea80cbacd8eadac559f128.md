@@ -1,1 +1,0 @@
-# X 2. Configurar la rotación de logs (el archivo /var/log/freeradius/radius.log) para no llenar el disco del servidor.
