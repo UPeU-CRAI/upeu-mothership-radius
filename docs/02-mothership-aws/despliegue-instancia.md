@@ -1,6 +1,8 @@
 # Despliegue de la Instancia FreeRADIUS en AWS
 
-Este documento cubre la creación de la instancia EC2 en AWS e instalación de FreeRADIUS.
+> **Rol:** Infraestructura de la Mothership (servidor RADIUS Master)  
+> **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)  
+> **Siguiente paso:** [Configuración RADIUS](configuracion-radius.md)
 
 ---
 
