@@ -71,8 +71,7 @@ upeu-mothership-radius/
 │   │   └── flujo-autenticacion.md       # Diagrama y flujo Mothership ↔ Satellites
 │   ├── 02-mothership-aws/
 │   │   ├── despliegue-instancia.md      # Crear instancia EC2 + instalar FreeRADIUS
-│   │   ├── configuracion-radius.md      # Clients, Users, EAP y Performance
-│   │   └── persistencia-cache.md        # TLS Session Tickets y Fast Reconnect
+│   │   └── configuracion-radius.md      # EAP-TLS + Caché TLS + Zero Trust + Performance
 │   ├── 03-satellites-locales/
 │   │   ├── instalacion-ubuntu.md        # Instalación en VMware / Ubuntu
 │   │   └── configuracion-proxy.md       # Reenvío de peticiones hacia AWS
