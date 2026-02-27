@@ -1,0 +1,1 @@
+# X 3. Implementar un "Health Check" (como el que vimos en el archivo proxy.conf) para que el Satélite sepa automáticamente si la Mothership se cae y pueda usar un respaldo local.

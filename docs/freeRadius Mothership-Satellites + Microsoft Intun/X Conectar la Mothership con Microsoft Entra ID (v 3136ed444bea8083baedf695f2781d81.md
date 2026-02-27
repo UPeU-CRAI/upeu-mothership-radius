@@ -1,0 +1,1 @@
+# X Conectar la Mothership con Microsoft Entra ID (vía LDAP o API) para que los estudiantes usen su correo institucional real de la UPeU

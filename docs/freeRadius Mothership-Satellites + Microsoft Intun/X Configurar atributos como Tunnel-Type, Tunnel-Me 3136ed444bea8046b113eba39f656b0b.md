@@ -1,0 +1,1 @@
+# X Configurar atributos como Tunnel-Type, Tunnel-Medium-Type y Tunnel-Private-Group-ID en la respuesta de la Mothership para que el switch/AP mueva al usuario a la VLAN correcta según su perfil.
