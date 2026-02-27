@@ -1,71 +1,160 @@
-# Microsoft Cloud PKI — Configuración
+# Microsoft Cloud PKI — Infraestructura de Certificados
 
-Gestión de certificados raíz e intermedios (Issuing CA) en Microsoft Cloud PKI para EAP-TLS.
+> **Componente:** PKI jerárquica para autenticación EAP-TLS  
+> **Referencia:** [Microsoft Cloud PKI Documentation](https://learn.microsoft.com/en-us/mem/intune/protect/microsoft-cloud-pki-overview)  
+> **Principio InkBridge:** Zero Trust — Identidad basada en certificados, no en contraseñas
 
 ---
 
-## 1. Crear la Autoridad Certificadora Raíz (Root CA)
+## Jerarquía de Certificados
 
-Esta es la base de confianza. **Solo se crea una vez.**
+La PKI de la UPeU sigue una estructura jerárquica de dos niveles gestionada completamente desde Microsoft Cloud:
 
-1. Entra al [Centro de administración de Microsoft Intune](https://intune.microsoft.com/).
-2. Ve a **Administración del inquilino** (Tenant Administration) > **Cloud PKI**.
-3. Haz clic en **Crear** y selecciona **Entidad de certificación raíz**.
-4. **Configuración:**
-   - **Nombre común (CN):** `UPeU Root CA`
-   - **Periodo de validez:** 10 o 20 años (recomendado para la Raíz)
-5. Finaliza el asistente.
-6. Entra en ella y haz clic en **Descargar certificado** (archivo `.cer`).
+```mermaid
+flowchart TD
+    ROOT["🏛️ Root CA<br/><b>UPeU Root CA</b><br/><i>Validez: 10-20 años</i><br/><i>Se descarga UNA vez</i>"]
+    ISSUING["📝 Issuing CA<br/><b>UPeU Issuing CA Wi-Fi</b><br/><i>Validez: 2-5 años</i><br/><i>Emite certificados SCEP</i>"]
+    SERVER["🖥️ Certificado del Servidor<br/><b>MOTHERSHIP-AWS</b><br/><i>server-cert.pem + server-key.pem</i>"]
+    CLIENT["💻 Certificado del Alumno<br/><b>CN={{UserEmail}}</b><br/><i>Emitido automáticamente por Intune</i>"]
+
+    ROOT -->|"Firma"| ISSUING
+    ISSUING -->|"Firma"| SERVER
+    ISSUING -->|"Firma (SCEP)"| CLIENT
+
+    style ROOT fill:#1e40af,color:#fff,stroke:#1e3a5f
+    style ISSUING fill:#047857,color:#fff,stroke:#065f46
+    style SERVER fill:#7c3aed,color:#fff,stroke:#6d28d9
+    style CLIENT fill:#d97706,color:#fff,stroke:#b45309
+```
 
 > [!IMPORTANT]
-> Guarda el archivo `UPeU_Root_CA.cer`. Se subirá al servidor de AWS.
+> **Cadena de confianza:** FreeRADIUS valida que el certificado del alumno esté firmado por la Issuing CA, que a su vez está firmada por la Root CA. Si algún eslabón de la cadena falta en el servidor, **todos los dispositivos serán rechazados**.
 
 ---
 
-## 2. Crear la Autoridad Certificadora Emisora (Issuing CA)
+## Paso 1: Crear Root CA (Una sola vez)
 
-Esta es la que FreeRADIUS consultará y la que Intune usará para repartir certificados.
+1. Accede al [Centro de administración de Microsoft Intune](https://intune.microsoft.com/)
+2. Navega a **Administración del inquilino** → **Cloud PKI**
+3. Clic en **Crear** → **Entidad de certificación raíz**
 
-1. En la misma pantalla de **Cloud PKI**, haz clic en **Crear** > **Entidad de certificación emisora**.
-2. **Configuración:**
-   - **Nombre común (CN):** `UPeU Issuing CA Wi-Fi`
-   - **Tipo de CA:** Selecciona **Raíz de Cloud PKI** (elige la del paso anterior)
-   - **Periodo de validez:** 2 a 5 años
-3. Copia las URLs de **CRL** (lista de revocación) y **SCEP** en un Notepad.
-4. **Descarga el certificado** de esta Issuing CA.
+| Campo | Valor | Notas |
+|---|---|---|
+| **Nombre común (CN)** | `UPeU Root CA` | Identificador de la CA raíz |
+| **Periodo de validez** | 10 o 20 años | Recomendado largo para la raíz |
+| **Algoritmo de firma** | RSA 4096 o ECDSA P-256 | RSA 4096 para máxima compatibilidad |
+
+4. Finaliza el asistente
+5. Entra en la CA creada → **Descargar certificado** (archivo `.cer`)
+
+> [!CAUTION]
+> El certificado de la Root CA **no se regenera**. Si lo pierdes, deberás recrear toda la jerarquía PKI y re-emitir todos los certificados de los dispositivos.
 
 ---
 
-## 3. Subir los Certificados al Servidor AWS
+## Paso 2: Crear Issuing CA (Una sola vez)
 
-### Desde tu computadora local (usando SCP):
+1. En la misma pantalla de **Cloud PKI** → **Crear** → **Entidad de certificación emisora**
 
-```bash
-scp -i "tu-llave.pem" C:\ruta\tus-certificados\*.cer ubuntu@TU_IP_ELASTICA:~/
+| Campo | Valor | Notas |
+|---|---|---|
+| **Nombre común (CN)** | `UPeU Issuing CA Wi-Fi` | Identifica el propósito de esta CA |
+| **Tipo de CA** | Raíz de Cloud PKI | Seleccionar la Root CA del paso anterior |
+| **Periodo de validez** | 2 a 5 años | Renovar antes del vencimiento |
+
+2. En la sección de atributos, **copiar las URLs de CRL y SCEP**:
+
+```
+URL CRL:  https://pkicrl.manage.microsoft.com/crl/<TENANT_ID>/...
+URL SCEP: https://pkiscep.manage.microsoft.com/scep/<TENANT_ID>/...
 ```
 
-### En el servidor AWS:
+> [!TIP]
+> Guarda estas URLs en un lugar seguro. La **URL SCEP** se usará al configurar el [Perfil SCEP en Intune](perfiles-intune.md).
+
+3. **Descargar el certificado** de la Issuing CA
+
+---
+
+## Paso 3: Desplegar Certificados en la Mothership (AWS)
+
+### 3.1 Transferir desde tu computadora local
 
 ```bash
-# Crear carpeta para certificados UPeU
+# Desde tu PC local (donde descargaste los .cer)
+# Reemplaza las variables con tus valores reales
+scp -i "<RUTA_LLAVE_PEM>" \
+    <RUTA_LOCAL>/UPeU_Root_CA.cer \
+    <RUTA_LOCAL>/UPeU_Issuing_CA.cer \
+    ubuntu@<IP_ELASTICA_MOTHERSHIP>:~/
+```
+
+### 3.2 Instalar en el servidor AWS
+
+```bash
+# Crear directorio dedicado para certificados UPeU
 sudo mkdir -p /etc/freeradius/3.0/certs/upeu
 
-# Asignar permisos
+# Mover certificados descargados
+sudo mv ~/UPeU_Root_CA.cer /etc/freeradius/3.0/certs/upeu/ca-root.pem
+sudo mv ~/UPeU_Issuing_CA.cer /etc/freeradius/3.0/certs/upeu/ca-issuing.pem
+
+# Asignar propiedad al usuario de FreeRADIUS
 sudo chown -R freerad:freerad /etc/freeradius/3.0/certs/upeu
 
-# Mover certificados a su ubicación definitiva
-sudo mv ~/*.cer /etc/freeradius/3.0/certs/upeu/
+# Permisos restrictivos (solo FreeRADIUS puede leer las llaves)
+sudo chmod 640 /etc/freeradius/3.0/certs/upeu/*.pem
+sudo chmod 600 /etc/freeradius/3.0/certs/upeu/server-key.pem
+```
+
+### 3.3 Verificar la cadena de confianza
+
+```bash
+# Verificar que el certificado del servidor es válido contra la Root CA
+sudo openssl verify \
+    -CAfile /etc/freeradius/3.0/certs/upeu/ca-root.pem \
+    /etc/freeradius/3.0/certs/upeu/server-cert.pem
+
+# Resultado esperado: "server-cert.pem: OK"
 ```
 
 ---
 
-## 4. Resumen de Archivos Necesarios
+## Inventario de Certificados en la Mothership
 
-Para que FreeRADIUS funcione con EAP-TLS, necesitas tener en el servidor:
+| Archivo | Origen | Ruta en AWS | Permisos |
+|---|---|---|---|
+| `ca-root.pem` | Descargado de Cloud PKI (Root CA) | `/etc/freeradius/3.0/certs/upeu/ca-root.pem` | `640` |
+| `ca-issuing.pem` | Descargado de Cloud PKI (Issuing CA) | `/etc/freeradius/3.0/certs/upeu/ca-issuing.pem` | `640` |
+| `server-cert.pem` | Certificado del servidor RADIUS | `/etc/freeradius/3.0/certs/upeu/server-cert.pem` | `640` |
+| `server-key.pem` | Llave privada del servidor | `/etc/freeradius/3.0/certs/upeu/server-key.pem` | `600` |
+| `dh` | Generado con `openssl dhparam` | `/etc/freeradius/3.0/certs/dh` | `640` |
 
-| Archivo | Descripción | Ruta en AWS |
-|---|---|---|
-| `UPeU_Root_CA.cer` | Certificado raíz de confianza | `/etc/freeradius/3.0/certs/upeu/ca-root.pem` |
-| `UPeU_Issuing_CA.cer` | Certificado de la CA emisora | `/etc/freeradius/3.0/certs/upeu/` |
-| `server-key.pem` | Llave privada del servidor | `/etc/freeradius/3.0/certs/upeu/server-key.pem` |
-| `server-cert.pem` | Certificado del servidor | `/etc/freeradius/3.0/certs/upeu/server-cert.pem` |
+> [!WARNING]
+> **`server-key.pem` debe tener permisos `600`** (solo lectura para el propietario). Si un atacante obtiene esta llave, puede suplantar al servidor RADIUS y ejecutar un ataque Evil Twin.
+
+---
+
+## Relación con Otros Documentos
+
+```mermaid
+flowchart LR
+    PKI["📜 cloud-pki-config.md<br/><i>(este documento)</i>"]
+    INTUNE["📱 perfiles-intune.md"]
+    EAP["🚀 configuracion-radius.md"]
+    ENTRA["🔐 microsoft-entra-id.md"]
+
+    PKI -->|"Root CA + Issuing CA"| INTUNE
+    PKI -->|"ca-root.pem → ca_file"| EAP
+    ENTRA -->|"Identidad de usuarios"| INTUNE
+    INTUNE -->|"Certificado SCEP → dispositivo"| EAP
+
+    style PKI fill:#107c10,color:#fff
+```
+
+| Paso | Documento |
+|---|---|
+| 1. Crear Root CA + Issuing CA | **Este documento** |
+| 2. Distribuir certificados a dispositivos | [perfiles-intune.md](perfiles-intune.md) |
+| 3. Instalar CA en FreeRADIUS | [configuracion-radius.md](../02-mothership-aws/configuracion-radius.md) (sección 3.2) |
+| 4. Configurar identidad de usuarios | [microsoft-entra-id.md](microsoft-entra-id.md) |
