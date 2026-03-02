@@ -96,8 +96,8 @@ flowchart TD
 
 - **Identity Provider:** Microsoft Entra ID + Microsoft Cloud PKI
 - **Endpoint Management:** Microsoft Intune (perfiles SCEP / Wi-Fi)
-- **Policy Server:** FreeRADIUS 3.0 en AWS EC2 (Ubuntu 24.04 LTS)
-- **Satellites:** FreeRADIUS 3.0 en Ubuntu (VMware local)
+- **Policy Server:** FreeRADIUS 3.2.x en AWS EC2 (Ubuntu 24.04 LTS)
+- **Satellites:** FreeRADIUS 3.2.x en Ubuntu (VMware local)
 - **Cumplimiento:**
   - **Authentication:** EAP-TLS (Certificados digitales)
   - **Authorization:** Role-Based Access Control (RBAC) vía Entra Groups

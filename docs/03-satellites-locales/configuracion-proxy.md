@@ -63,6 +63,16 @@ sudo nano /etc/freeradius/3.0/proxy.conf
 
 ```ini
 # ============================================================================
+#  CONFIGURACIÓN GLOBAL DEL PROXY
+# ============================================================================
+proxy server {
+    # No usar servidores de respaldo automáticamente cuando el home server
+    # principal falla. Con fail-over explícito en el pool, default_fallback
+    # causaría comportamiento impredecible en redes de un solo Mothership.
+    default_fallback = no
+}
+
+# ============================================================================
 #  MOTHERSHIP — Servidor Master de AWS
 #  Todas las peticiones de autenticación se reenvían aquí.
 #  El Satellite NO toma decisiones de acceso por sí mismo.
@@ -85,11 +95,16 @@ home_server upeu-aws-mothership {
     # Si la Mothership no responde en 5 segundos, marcarla como caída
     response_window = 5
 
-    # Reintentar conexión cada 30 segundos después de un fallo
-    zombie_period = 30
+    # Período zombie: tiempo de espera antes de reintentar tras un fallo.
+    # 40s (subido de 30s) reduce la presión sobre WAN en condiciones inestables
+    zombie_period = 40
 
     # Número de paquetes de prueba para declarar "revivida"
     revive_interval = 60
+
+    # Verificación activa de estado — envía paquetes Status-Server periódicamente
+    # para detectar caídas de la Mothership antes de que llegue tráfico real
+    status_check = status-server
 
     # Timeouts de red — ajustados para latencia WAN Lima→AWS
     response_timeouts = 3
@@ -157,7 +172,8 @@ client campus-lima-aps {
     ipaddr    = <SUBRED_APS_LIMA>              # Ej: 172.16.79.0/24
     secret    = <SHARED_SECRET_AP_LIMA>        # Secreto AP ↔ Satellite
     shortname = CAMPUS-LIMA-APS
-    require_message_authenticator = yes        # Prevenir spoofing de paquetes
+    require_message_authenticator = yes        # Mitigación CVE-2024-3596 (BLASTRADIUS)
+    limit_proxy_state = yes                    # Previene abuso del atributo Proxy-State
 }
 
 # ============================================================================
@@ -168,6 +184,7 @@ client campus-lima-aps {
 #     secret    = <SHARED_SECRET_AP_LIMA>
 #     shortname = AP-BIBLIO-LIMA
 #     require_message_authenticator = yes
+#     limit_proxy_state = yes
 # }
 ```
 
@@ -175,8 +192,11 @@ client campus-lima-aps {
 > **Separación de secretos (buena práctica InkBridge):**
 > - `<SHARED_SECRET_UPEU>` → Secreto entre Satellite ↔ Mothership (proxy.conf y clients.conf en AWS)
 > - `<SHARED_SECRET_AP_LIMA>` → Secreto entre Access Points ↔ Satellite (clients.conf local y configuración del controlador Wi-Fi)
-> 
+>
 > Usar **secretos diferentes** reduce el impacto si uno de los dos se compromete.
+
+> [!IMPORTANT]
+> **Mitigación BLASTRADIUS (CVE-2024-3596):** `require_message_authenticator = yes` y `limit_proxy_state = yes` son obligatorios en **todos** los clientes RADIUS (APs y Satellites). CVE-2024-3596 demostró que un atacante en la red puede forjar respuestas RADIUS sin Message-Authenticator, permitiendo acceso no autorizado incluso con secretos fuertes.
 
 ---
 
@@ -246,7 +266,8 @@ cache {
     ttl = 86400
 
     # Máximo de entradas — ajustar según alumnos activos por sede
-    max_entries = 1000
+    # Aumentado a 2000 para cubrir jornadas completas en campus Lima
+    max_entries = 2000
 
     # Atributos a cachear (solo los necesarios para reconexión)
     update reply {

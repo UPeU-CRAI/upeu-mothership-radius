@@ -48,8 +48,8 @@ flowchart LR
 |---|---|
 | **Identity** | Microsoft Entra ID + Microsoft Cloud PKI |
 | **Endpoint Management** | Microsoft Intune (SCEP / Wi-Fi profiles) |
-| **Policy Server** | FreeRADIUS 3.0 en AWS EC2 (Ubuntu 24.04 LTS) |
-| **Satellites** | FreeRADIUS 3.0 en Ubuntu (VMware local) |
+| **Policy Server** | FreeRADIUS 3.2.x en AWS EC2 (Ubuntu 24.04 LTS) |
+| **Satellites** | FreeRADIUS 3.2.x en Ubuntu (VMware local) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Rol:** Servidor RADIUS Master — Cerebro central de autenticación  
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)  
-> **Versión:** FreeRADIUS 3.0.x sobre Ubuntu 24.04 LTS (AWS EC2)  
+> **Versión:** FreeRADIUS 3.2.x sobre Ubuntu 24.04 LTS (AWS EC2)  
 
 ---
 
@@ -97,7 +97,8 @@ client satellite-lima-01 {
     ipaddr   = <IP_PUBLICA_SATELLITE_LIMA>     # IP pública de la sede Lima
     secret   = <SHARED_SECRET_UPEU>            # Secreto compartido (mín. 16 caracteres)
     shortname = SAT-LIMA-01
-    require_message_authenticator = yes        # Obligatorio — previene spoofing de paquetes
+    require_message_authenticator = yes        # Mitigación CVE-2024-3596 (BLASTRADIUS)
+    limit_proxy_state = yes                    # Previene abuso del atributo Proxy-State
 }
 
 # ============================================================================
@@ -108,11 +109,14 @@ client satellite-lima-01 {
 #     secret   = <SHARED_SECRET_UPEU>
 #     shortname = SAT-JULIACA-01
 #     require_message_authenticator = yes
+#     limit_proxy_state = yes
 # }
 ```
 
 > [!IMPORTANT]
-> **`require_message_authenticator = yes`** es obligatorio en toda arquitectura InkBridge. Sin este flag, un atacante podría inyectar paquetes RADIUS falsificados en la red.
+> **Mitigación BLASTRADIUS (CVE-2024-3596):** Ambos atributos son obligatorios en FreeRADIUS 3.2.x:
+> - **`require_message_authenticator = yes`** — Obliga al cliente a incluir el atributo Message-Authenticator en cada paquete, previniendo ataques de inyección de paquetes RADIUS falsificados.
+> - **`limit_proxy_state = yes`** — Previene el abuso del atributo Proxy-State para ataques de amplificación. Sin este flag, un atacante con acceso a la red RADIUS podría explotar el servidor como reflector.
 
 ---
 
@@ -206,10 +210,14 @@ tls-config tls-common {
     #  SEGURIDAD TLS — Protocolo y curvas criptográficas
     # ================================================================
 
-    # TLS 1.2 es el mínimo seguro. Se puede subir a 1.3 cuando
-    # todos los APs (Ubiquiti UniFi) soporten la versión.
+    # TLS 1.2 mínimo; TLS 1.3 habilitado para clientes modernos
+    # (Windows 11, macOS 13+, iOS 16+, Android 10+).
+    # No se define tls_max_version para permitir TLS 1.3 automáticamente.
     tls_min_version = "1.2"
-    tls_max_version = "1.2"
+
+    # Suite de cifrado — solo ECDHE con Perfect Forward Secrecy.
+    # Excluye cifrados anónimos (!aNULL), MD5 obsoleto (!MD5) y DSS (!DSS).
+    cipher_list = "ECDHE+AESGCM:ECDHE+CHACHA20:!aNULL:!MD5:!DSS"
 
     # Curva elíptica recomendada por Microsoft y compatibles con
     # Windows 11, macOS y dispositivos móviles modernos.
@@ -239,8 +247,8 @@ tls-config tls-common {
 
         # Cantidad máxima de sesiones en memoria
         # Ajustar según población estudiantil activa
-        # Para ~5,000 alumnos, 255 es conservador pero estable en t2.micro
-        max_entries = 255
+        # Para ~5,000 alumnos, 1024 cubre una jornada completa con margen
+        max_entries = 1024
 
         # Nombre interno del almacén de caché
         # Obligatorio cuando se usa persist_dir
@@ -249,27 +257,41 @@ tls-config tls-common {
         # Persistencia en disco — Las sesiones sobreviven un reinicio
         # del servicio FreeRADIUS (ej: durante actualizaciones del SO)
         persist_dir = "${logdir}/tlscache"
+
+        # Cached-Session-Policy: atributos restaurados en Fast Reconnect.
+        # Sin este bloque, una reconexión por Session Ticket no recupera
+        # la VLAN asignada y el dispositivo entra a la VLAN nativa del switch
+        # en lugar de su VLAN de grupo (Alumnos/Docentes/Staff).
+        store {
+            &reply:Tunnel-Type               # Tipo de túnel VLAN (valor: 13)
+            &reply:Tunnel-Medium-Type        # Medio del túnel (valor: 6 = IEEE 802)
+            &reply:Tunnel-Private-Group-ID   # Número de VLAN asignado (ej: "100")
+            &reply:Reply-Message             # Mensaje de bienvenida (opcional)
+        }
     }
 }
 ```
 
-### 3.3 Recuperación de Políticas (VLAN, atributos)
+### 3.3 Cached-Session-Policy — Preservar VLANs en Fast Reconnect
 
-Para que las reconexiones rápidas (Fast Reconnect) conserven los atributos asignados (VLAN, bandwidth, etc.), habilitar en las secciones `peap` y `ttls`:
+Cuando un dispositivo se reconecta usando un Session Ticket (caché TLS), FreeRADIUS salta el handshake EAP-TLS completo pero debe **restaurar los atributos de política** (VLAN, Reply-Message) para que el AP asigne correctamente la VLAN al alumno.
+
+El bloque `store {}` dentro de `cache {}` (incluido en la sección 3.2) controla qué atributos de respuesta se persisten junto con el Session Ticket:
 
 ```ini
-# Dentro del mismo archivo eap, sección peap {}
-peap {
-    # ... configuración existente ...
-    use_tunneled_reply = yes    # Preservar VLAN y políticas en reconexión
-}
-
-# Sección ttls {}
-ttls {
-    # ... configuración existente ...
-    use_tunneled_reply = yes    # Preservar VLAN y políticas en reconexión
+# Dentro del bloque cache {} del tls-config tls-common
+# Los atributos listados se guardan al crear el Session Ticket
+# y se restauran automáticamente en reconexiones (Fast Reconnect).
+store {
+    &reply:Tunnel-Type               # Tipo de túnel VLAN (valor: 13)
+    &reply:Tunnel-Medium-Type        # Medio del túnel (valor: 6 = IEEE 802)
+    &reply:Tunnel-Private-Group-ID   # Número de VLAN (ej: "100", "200", "300")
+    &reply:Reply-Message             # Mensaje de bienvenida (opcional)
 }
 ```
+
+> [!IMPORTANT]
+> **Sin `store {}`**, en una reconexión rápida el dispositivo entra a la red **sin VLAN asignada**, cayendo a la VLAN nativa del switch. Para verificar que funciona, buscar en el log de la Mothership que los paquetes `Access-Accept` de reconexión incluyen los atributos `Tunnel-*`.
 
 ### 3.4 Generar Parámetros Diffie-Hellman
 
@@ -379,7 +401,8 @@ thread pool {
     max_servers = 150
 
     # Mínimo de hilos en espera (listos para ráfagas imprevistas)
-    min_spare_servers = 5
+    # Aumentado a 15 para absorber picos de inicio de clases (08:00 AM)
+    min_spare_servers = 15
 
     # Máximo de hilos ociosos antes de que el servidor los recicle
     max_spare_servers = 20

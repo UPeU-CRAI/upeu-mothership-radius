@@ -2,7 +2,7 @@
 
 > **Rol:** Servidor RADIUS Satellite — Proxy puro con caché mínima de atributos  
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)  
-> **Versión:** FreeRADIUS 3.0.x sobre Ubuntu Server (VMware local)
+> **Versión:** FreeRADIUS 3.2.x sobre Ubuntu Server (VMware local)
 
 ---
 
@@ -59,7 +59,7 @@ sudo apt install freeradius freeradius-utils -y
 ### Verificar instalación
 
 ```bash
-# Confirmar versión (debe ser 3.0.x)
+# Confirmar versión (debe ser 3.2.x)
 sudo freeradius -v
 
 # Verificar que el servicio arrancó
