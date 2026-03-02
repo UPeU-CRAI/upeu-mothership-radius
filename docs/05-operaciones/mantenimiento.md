@@ -2,7 +2,9 @@
 
 > **Alcance:** Ambos servidores (Mothership + Satellites)  
 > **Frecuencia:** Semanal (revisión) + mensual (actualizaciones) + diaria (automática via cron)  
-> **Principio:** Validar siempre antes de reiniciar (`freeradius -CX`)
+> **Referencia:** [Ubuntu Server Guide — Security](https://ubuntu.com/server/docs/security-introduction)  
+> **Principio:** Validar siempre antes de reiniciar (`freeradius -CX`)  
+> **Siguiente paso:** [errores-comunes.md](../06-troubleshooting/errores-comunes.md)
 
 ---
 

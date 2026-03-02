@@ -22,14 +22,16 @@ flowchart LR
         INTUNE["Intune (SCEP/Wi-Fi)"]
     end
 
+    Device["💻 Dispositivo"] -->|"EAP-TLS"| AP
     AP -->|"RADIUS<br/>UDP 1812"| SAT
     SAT -->|"Proxy"| MOTH
     MOTH -.->|"Valida certs"| ENTRA
-    INTUNE -->|"Certificados"| AP
+    INTUNE -->|"Certificados"| Device
 
     style MOTH fill:#1a56db,color:#fff
     style SAT fill:#047857,color:#fff
     style AP fill:#7c3aed,color:#fff
+    style Device fill:#d97706,color:#fff
 ```
 
 ### Glosario
@@ -37,7 +39,7 @@ flowchart LR
 | Componente | IP | Rol |
 |---|---|---|
 | **MOTHERSHIP-AWS** | `<IP_ELASTICA_MOTHERSHIP>` | Servidor RADIUS Master (EAP-TLS + validación de certificados + Session Tickets) |
-| **SAT-LIMA-01** | `<IP_SAT_LIMA_01>` | Proxy RADIUS local con caché de atributos (VLAN/Reply-Message) para resiliencia WAN |
+| **SAT-LIMA-01** | `<IP_PUBLICA_SAT_LIMA_01>` | Proxy RADIUS local con caché de atributos (VLAN/Reply-Message) para resiliencia WAN |
 | **Access Points** | `172.16.79.0/24` | Ubiquiti UniFi (sede Lima) |
 
 ---
@@ -67,6 +69,7 @@ flowchart LR
 upeu-mothership-radius/
 ├── README.md
 ├── docs/
+│   ├── 00-indice.md                    # Índice general + mapa de navegación
 │   ├── 01-arquitectura/
 │   │   └── flujo-autenticacion.md       # Diagrama y flujo Mothership ↔ Satellites
 │   ├── 02-mothership-aws/

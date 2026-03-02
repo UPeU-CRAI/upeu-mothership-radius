@@ -98,7 +98,7 @@ sudo nano /etc/freeradius/3.0/clients.conf
 #  Ref: docs/03-satellites-locales/configuracion-proxy.md
 # ============================================================================
 client satellite-lima-01 {
-    ipaddr   = <IP_PUBLICA_SATELLITE_LIMA>     # IP pública de la sede Lima
+    ipaddr   = <IP_PUBLICA_SAT_LIMA_01>        # IP pública de la sede Lima
     secret   = <SHARED_SECRET_UPEU>            # Secreto compartido (mín. 16 caracteres)
     shortname = SAT-LIMA-01
     require_message_authenticator = yes        # Mitigación CVE-2024-3596 (BLASTRADIUS)
@@ -245,13 +245,15 @@ tls-config tls-common {
     #  CACHÉ TLS + FAST RECONNECT — Estándar InkBridge
     #
     #  Objetivo: "Baja Latencia" — después del primer handshake
-    #  exitoso, las reconexiones dentro de 24h no viajan a AWS.
-    #  El Session Ticket se almacena en disco (persist_dir) para
-    #  sobrevivir reinicios del servicio.
+    #  exitoso, las reconexiones se aceleran con Session Tickets.
+    #  NOTA: El tráfico SÍ viaja a la Mothership (AWS), pero el
+    #  handshake TLS es abreviado (resumption, no full).
+    #  Para reconexiones SIN viaje a AWS, ver la caché de atributos
+    #  del Satellite en docs/03-satellites-locales/configuracion-proxy.md
     #
     #  Diagrama de decisión:
     #    Dispositivo se conecta → ¿Existe Session Ticket?
-    #      SÍ → Access-Accept inmediato (sin EAP-TLS completo)
+    #      SÍ → Handshake abreviado (TLS resumption)
     #      NO → Full handshake → Validar cert → Generar ticket
     # ================================================================
     cache {
@@ -322,10 +324,6 @@ sudo mkdir -p /var/log/freeradius/tlscache
 sudo chown freerad:freerad /var/log/freeradius/tlscache
 sudo chmod 700 /var/log/freeradius/tlscache
 
-# Directorio de Session Tickets (persistencia entre reinicios)
-sudo mkdir -p /var/log/freeradius/tickets
-sudo chown freerad:freerad /var/log/freeradius/tickets
-sudo chmod 700 /var/log/freeradius/tickets
 ```
 
 ### Limpieza Automática (Cronjob)

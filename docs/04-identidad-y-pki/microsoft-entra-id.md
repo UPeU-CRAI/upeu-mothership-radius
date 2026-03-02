@@ -128,3 +128,7 @@ ldap {
 | **Acceso con privilegio mínimo** | VLAN asignada según grupo de Entra → solo acceso necesario |
 | **Asumir la brecha** | Session Tickets con TTL de 24h; revocación por CRL en Cloud PKI |
 | **Sin contraseñas** | EAP-TLS exclusivo; PEAP/MSCHAPv2 deshabilitados en la Mothership |
+
+---
+
+→ **Siguiente paso:** Verificar que los certificados se distribuyen correctamente en [perfiles-intune.md](perfiles-intune.md), luego validar la autenticación en [configuracion-radius.md](../02-mothership-aws/configuracion-radius.md).

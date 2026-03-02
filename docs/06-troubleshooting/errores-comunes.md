@@ -2,6 +2,7 @@
 
 > **Alcance:** Toda la infraestructura RADIUS (Mothership + Satellites + Intune + PKI)  
 > **Metodología:** Síntoma → Causa raíz → Diagrama de decisión → Solución  
+> **Referencia:** [FreeRADIUS Debug Guide](https://wiki.freeradius.org/guide/FAQ)  
 > **Regla #1:** Siempre ejecutar `freeradius -CX` antes de reiniciar
 
 ---
@@ -240,7 +241,7 @@ ERROR: (TLS) recv TLS 1.2 Alert, fatal certificate_unknown
 ```bash
 # 1. ¿Existen los certificados en la ruta esperada?
 ls -la /etc/freeradius/3.0/certs/upeu/
-# Debe mostrar: ca-root.pem, server-cert.pem, server-key.pem
+# Debe mostrar: ca-root.pem, ca-issuing.pem, ca-chain.pem, server-cert.pem, server-key.pem
 
 # 2. ¿El archivo DH existe?
 ls -la /etc/freeradius/3.0/certs/dh
@@ -249,11 +250,16 @@ ls -la /etc/freeradius/3.0/certs/dh
 stat -c '%U:%G %a %n' /etc/freeradius/3.0/certs/upeu/*
 # Esperado: freerad:freerad 640 para .pem, 600 para server-key.pem
 
-# 4. ¿La cadena de confianza es válida?
+# 4. ¿La cadena de confianza es válida? (PKI de dos niveles)
 sudo openssl verify \
     -CAfile /etc/freeradius/3.0/certs/upeu/ca-root.pem \
+    -untrusted /etc/freeradius/3.0/certs/upeu/ca-issuing.pem \
     /etc/freeradius/3.0/certs/upeu/server-cert.pem
 # Esperado: "server-cert.pem: OK"
+# NOTA: Sin -untrusted, fallará con 'unable to get local issuer certificate'
+#       porque server-cert fue firmado por Issuing CA, no por Root CA.
+#       Alternativa: usar ca-chain.pem como -CAfile directamente:
+#       sudo openssl verify -CAfile .../ca-chain.pem .../server-cert.pem
 
 # 5. ¿El certificado no ha expirado?
 sudo openssl x509 -enddate -noout \

@@ -12,7 +12,7 @@ Para mantenerte en el **Free Tier**, elige:
 
 | Parámetro | Valor |
 |---|---|
-| **Nombre** | `FreeRADIUS-Master-UPeU` |
+| **Nombre** | `MOTHERSHIP-AWS` |
 | **AMI** | Ubuntu Server 24.04 LTS |
 | **Tipo de instancia** | `t2.micro` |
 | **Key Pair** | Crear uno nuevo y guardarlo en un lugar seguro |
@@ -77,7 +77,7 @@ sudo apt install freeradius freeradius-utils -y
 sudo freeradius -v
 ```
 
-Deberías ver la versión `3.x` en la salida.
+Deberías ver la versión `3.2.x` en la salida.
 
 > [!TIP]
 > Si aparece el mensaje `Pending kernel upgrade!`, reinicia la instancia antes de continuar:
@@ -97,3 +97,20 @@ sudo freeradius -CX
 ```
 
 Si al final dice `Configuration appears to be OK`, la instalación fue exitosa.
+
+![Instalación de FreeRADIUS en AWS](../assets/capturas/freeradius-instalacion-aws.png)
+
+---
+
+## Archivos y Servicios Afectados
+
+| Recurso | Estado |
+|---|---|
+| FreeRADIUS 3.2.x | Instalado vía `apt` |
+| Servicio `freeradius` | Activo (verificar con `systemctl status`) |
+| Elastic IP | Asociada a la instancia |
+| Security Group `RADIUS-Master-SG` | Puertos 1812/1813/22 abiertos |
+
+---
+
+→ **Siguiente paso:** [Configuración RADIUS](configuracion-radius.md) — configurar EAP-TLS, caché TLS, registro de Satellites y políticas de VLAN.

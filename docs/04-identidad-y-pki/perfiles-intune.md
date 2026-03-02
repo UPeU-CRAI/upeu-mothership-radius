@@ -129,6 +129,8 @@ Asignar al **mismo grupo** que el Paso 1. Intune aplica automáticamente ambos p
 
 ![Verificación de perfiles asignados](../assets/capturas/intune-verificacion.png)
 
+![Resumen final del perfil SCEP](../assets/capturas/intune-resumen-final.png)
+
 ---
 
 ## Paso 3: Perfil Wi-Fi (EAP-TLS Auto-Connect)

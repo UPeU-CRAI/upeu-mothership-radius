@@ -2,7 +2,9 @@
 
 > **Alcance:** Mothership (AWS) + Satellites (locales)  
 > **Principio InkBridge:** La Mothership centraliza la auditoría; los Satellites solo reportan eventos de caché  
-> **Política:** Monitorear sin interrumpir el servicio de producción
+> **Referencia:** [FreeRADIUS Logging](https://wiki.freeradius.org/config/Logging)  
+> **Política:** Monitorear sin interrumpir el servicio de producción  
+> **Siguiente paso:** [mantenimiento.md](mantenimiento.md)
 
 ---
 
@@ -47,7 +49,8 @@ flowchart LR
 | ¿Alguien fue rechazado? | **Mothership** | `grep "Access-Reject" radius.log` |
 | ¿La Mothership está en silencio? | **Satellite** | Ver si hay `CACHE HIT` → la caché funciona |
 | ¿El servicio está caído? | **Ambos** | `systemctl status freeradius` |
-| ¿Cuántos usuarios hay en caché? | **Mothership** | `ls -1 tlscache/ \| wc -l` |
+| ¿Cuántas sesiones TLS hay en caché? | **Mothership** | `ls -1 tlscache/ \| wc -l` |
+| ¿Cuántos usuarios hay en caché de atributos? | **Satellite** | No visible directamente (memoria `rbtree`); verificar por `CACHE HIT` en log |
 
 ---
 

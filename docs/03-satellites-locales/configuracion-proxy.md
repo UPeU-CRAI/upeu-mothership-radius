@@ -196,7 +196,7 @@ client campus-lima-aps {
 > Usar **secretos diferentes** reduce el impacto si uno de los dos se compromete.
 
 > [!IMPORTANT]
-> **Mitigación BLASTRADIUS (CVE-2024-3596):** `require_message_authenticator = yes` y `limit_proxy_state = yes` son obligatorios en **todos** los clientes RADIUS (APs y Satellites). CVE-2024-3596 demostró que un atacante en la red puede forjar respuestas RADIUS sin Message-Authenticator, permitiendo acceso no autorizado incluso con secretos fuertes.
+> **Mitigación BLASTRADIUS (CVE-2024-3596):** `require_message_authenticator = yes` y `limit_proxy_state = yes` son obligatorios en **todos** los clientes RADIUS. Para detalles técnicos de esta vulnerabilidad, ver [configuracion-radius.md — §1 Registro de Satellites](../02-mothership-aws/configuracion-radius.md#1-registro-de-satellites-como-clientes-radius).
 
 ---
 
@@ -398,6 +398,9 @@ En **otra terminal** del Satellite:
 # Enviar petición de prueba a través del proxy
 radtest test1 <TEST_PASSWORD> 127.0.0.1 0 <SHARED_SECRET_UPEU>
 ```
+
+> [!NOTE]
+> **¿Por qué `127.0.0.1`?** FreeRADIUS incluye un `client localhost` predeterminado que acepta peticiones desde `127.0.0.1` con el secreto `testing123`. Sin embargo, al usar `radtest` con el secreto del proxy (`<SHARED_SECRET_UPEU>`), se verifica que la petición traverse correctamente el stack de proxy hacia la Mothership. Si no funciona con este secreto, probar con `testing123` para aislar si el problema es local o de red.
 
 ### Resultados Esperados
 
