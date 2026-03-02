@@ -36,8 +36,8 @@ flowchart LR
 
 | Componente | IP | Rol |
 |---|---|---|
-| **MOTHERSHIP-AWS** | `54.166.108.154` | Servidor RADIUS Master (EAP-TLS + validación de certificados) |
-| **SAT-LIMA-01** | `192.168.62.89` | Proxy RADIUS local con caché TLS para reconexiones rápidas |
+| **MOTHERSHIP-AWS** | `<IP_ELASTICA_MOTHERSHIP>` | Servidor RADIUS Master (EAP-TLS + validación de certificados + Session Tickets) |
+| **SAT-LIMA-01** | `<IP_SAT_LIMA_01>` | Proxy RADIUS local con caché de atributos (VLAN/Reply-Message) para resiliencia WAN |
 | **Access Points** | `172.16.79.0/24` | Ubiquiti UniFi (sede Lima) |
 
 ---
@@ -87,14 +87,14 @@ upeu-mothership-radius/
 │   └── assets/
 │       └── capturas/                    # Screenshots de Intune y configuración
 ├── infrastructure/
-│   └── aws/                             # Código IaC (Terraform)
+│   └── aws/                             # IaC Terraform (pendiente)
 ├── freeradius/
-│   ├── clients.d/                       # Definición de APs Satélites
-│   └── certs/                           # Certificados Cloud PKI
+│   ├── clients.d/                       # Fragmentos clients.conf por sede (pendiente)
+│   └── certs/                           # Certificados Cloud PKI (pendiente — no commitear llaves privadas)
 ├── intune/
-│   └── profiles/                        # Export de políticas Intune
+│   └── profiles/                        # Export de políticas Intune (pendiente)
 └── .github/
-    └── workflows/                       # CI/CD (GitHub Actions)
+    └── workflows/                       # CI/CD GitHub Actions (pendiente)
 ```
 
 ---

@@ -1,8 +1,8 @@
 # Microsoft Cloud PKI — Infraestructura de Certificados
 
-> **Componente:** PKI jerárquica para autenticación EAP-TLS  
-> **Referencia:** [Microsoft Cloud PKI Documentation](https://learn.microsoft.com/en-us/mem/intune/protect/microsoft-cloud-pki-overview)  
-> **Principio InkBridge:** Zero Trust — Identidad basada en certificados, no en contraseñas
+> **Rol:** PKI jerárquica de dos niveles para autenticación EAP-TLS
+> **Referencia:** [Microsoft Cloud PKI Documentation](https://learn.microsoft.com/en-us/mem/intune/protect/microsoft-cloud-pki-overview)
+> **Siguiente:** [perfiles-intune.md](perfiles-intune.md) → [configuracion-radius.md](../02-mothership-aws/configuracion-radius.md)
 
 ---
 
@@ -107,28 +107,48 @@ sudo chmod 640 /etc/freeradius/3.0/certs/upeu/*.pem
 sudo chmod 600 /etc/freeradius/3.0/certs/upeu/server-key.pem
 ```
 
-### 3.3 Verificar la cadena de confianza
+### 3.3 Crear el archivo de cadena y verificar
+
+La PKI de Microsoft Cloud PKI es de **dos niveles** (Root CA → Issuing CA). FreeRADIUS necesita ambas CAs en `ca_file` para validar los certificados de cliente. Crear el archivo de cadena antes de arrancar el servicio:
 
 ```bash
-# Verificar que el certificado del servidor es válido contra la Root CA
+# Concatenar Root CA + Issuing CA en un único archivo de cadena
+sudo bash -c "cat /etc/freeradius/3.0/certs/upeu/ca-root.pem \
+                   /etc/freeradius/3.0/certs/upeu/ca-issuing.pem \
+              > /etc/freeradius/3.0/certs/upeu/ca-chain.pem"
+
+# Asignar propiedad y permisos
+sudo chown freerad:freerad /etc/freeradius/3.0/certs/upeu/ca-chain.pem
+sudo chmod 640 /etc/freeradius/3.0/certs/upeu/ca-chain.pem
+```
+
+Este archivo es el que se referencia como `ca_file` en `configuracion-radius.md` (sección 3.2).
+
+```bash
+# Verificar la cadena completa (Root CA → Issuing CA → server-cert)
 sudo openssl verify \
     -CAfile /etc/freeradius/3.0/certs/upeu/ca-root.pem \
+    -untrusted /etc/freeradius/3.0/certs/upeu/ca-issuing.pem \
     /etc/freeradius/3.0/certs/upeu/server-cert.pem
 
 # Resultado esperado: "server-cert.pem: OK"
 ```
 
+> [!IMPORTANT]
+> Si el comando sin `-untrusted` falla con `unable to get local issuer certificate`, es normal: el certificado del servidor fue emitido por la **Issuing CA**, no directamente por la Root CA. El comando con `-untrusted` es el correcto para una PKI de dos niveles.
+
 ---
 
 ## Inventario de Certificados en la Mothership
 
-| Archivo | Origen | Ruta en AWS | Permisos |
-|---|---|---|---|
-| `ca-root.pem` | Descargado de Cloud PKI (Root CA) | `/etc/freeradius/3.0/certs/upeu/ca-root.pem` | `640` |
-| `ca-issuing.pem` | Descargado de Cloud PKI (Issuing CA) | `/etc/freeradius/3.0/certs/upeu/ca-issuing.pem` | `640` |
-| `server-cert.pem` | Certificado del servidor RADIUS | `/etc/freeradius/3.0/certs/upeu/server-cert.pem` | `640` |
-| `server-key.pem` | Llave privada del servidor | `/etc/freeradius/3.0/certs/upeu/server-key.pem` | `600` |
-| `dh` | Generado con `openssl dhparam` | `/etc/freeradius/3.0/certs/dh` | `640` |
+| Archivo | Origen | Ruta en AWS | Permisos | Uso en EAP |
+|---|---|---|---|---|
+| `ca-root.pem` | Descargado de Cloud PKI (Root CA) | `/etc/freeradius/3.0/certs/upeu/ca-root.pem` | `640` | Componente de `ca-chain.pem` |
+| `ca-issuing.pem` | Descargado de Cloud PKI (Issuing CA) | `/etc/freeradius/3.0/certs/upeu/ca-issuing.pem` | `640` | Componente de `ca-chain.pem` |
+| `ca-chain.pem` | Generado concatenando Root + Issuing (paso 3.3) | `/etc/freeradius/3.0/certs/upeu/ca-chain.pem` | `640` | **`ca_file`** en `tls-config tls-common` |
+| `server-cert.pem` | Certificado del servidor RADIUS | `/etc/freeradius/3.0/certs/upeu/server-cert.pem` | `640` | `certificate_file` |
+| `server-key.pem` | Llave privada del servidor | `/etc/freeradius/3.0/certs/upeu/server-key.pem` | `600` | `private_key_file` |
+| `dh` | Generado con `openssl dhparam` | `/etc/freeradius/3.0/certs/dh` | `640` | `dh_file` |
 
 > [!WARNING]
 > **`server-key.pem` debe tener permisos `600`** (solo lectura para el propietario). Si un atacante obtiene esta llave, puede suplantar al servidor RADIUS y ejecutar un ataque Evil Twin.
@@ -145,11 +165,14 @@ flowchart LR
     ENTRA["🔐 microsoft-entra-id.md"]
 
     PKI -->|"Root CA + Issuing CA"| INTUNE
-    PKI -->|"ca-root.pem → ca_file"| EAP
+    PKI -->|"ca-chain.pem → ca_file"| EAP
     ENTRA -->|"Identidad de usuarios"| INTUNE
     INTUNE -->|"Certificado SCEP → dispositivo"| EAP
 
     style PKI fill:#107c10,color:#fff
+    style EAP fill:#1a56db,color:#fff
+    style INTUNE fill:#5c2d91,color:#fff
+    style ENTRA fill:#0078d4,color:#fff
 ```
 
 | Paso | Documento |

@@ -1,8 +1,8 @@
 # Configuración Unificada del Satellite (Proxy Puro)
 
-> **Servidor:** SAT-LIMA-01 (`192.168.62.89`)  
-> **Modelo:** Proxy puro con caché mínima de atributos para resiliencia  
+> **Rol:** Satellite — Proxy puro con caché mínima de atributos para resiliencia
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)
+> **Versión:** FreeRADIUS 3.2.x sobre Ubuntu 24.04 LTS (VMware local)
 
 ---
 
@@ -256,8 +256,9 @@ sudo nano /etc/freeradius/3.0/mods-available/cache
 #  Almacena: User-Name → Atributos de respuesta (VLAN, Reply-Message)
 # ============================================================================
 cache {
-    # Identificador del módulo
-    module = "rlm_cache"
+    # Backend de almacenamiento en memoria (árbol rojo-negro)
+    # Requerido en FreeRADIUS 3.2.x — reemplaza el obsoleto "module = "rlm_cache""
+    driver = "rlm_cache_rbtree"
 
     # Clave de búsqueda: por usuario
     key = "%{User-Name}"
@@ -395,7 +396,7 @@ En **otra terminal** del Satellite:
 
 ```bash
 # Enviar petición de prueba a través del proxy
-radtest test1 <TEST_PASSWORD> 127.0.0.1 0 testing123
+radtest test1 <TEST_PASSWORD> 127.0.0.1 0 <SHARED_SECRET_UPEU>
 ```
 
 ### Resultados Esperados
@@ -457,3 +458,7 @@ sudo systemctl status freeradius
 | `/etc/freeradius/3.0/mods-enabled/cache` | Enlace simbólico (activación) |
 | `/etc/freeradius/3.0/sites-enabled/default` | Integración caché en authorize + post-auth |
 | `/etc/freeradius/3.0/radiusd.conf` | Logging sin auditoría (delegada a Mothership) |
+
+---
+
+→ **Siguiente paso:** [Monitoreo y Logs](../05-operaciones/monitoreo-logs.md) — verificar que el Satellite proxy y la caché funcionan correctamente en producción.

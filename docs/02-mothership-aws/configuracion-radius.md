@@ -63,15 +63,19 @@ sequenceDiagram
 
     Note over D,M: --- Reconexión Rápida (< 24h) ---
 
-    D->>AP: EAP-Response + Session-Ticket
+    D->>AP: EAP-Response/Identity
     AP->>S: RADIUS Access-Request
-    S->>S: Buscar en caché local (tlscache)
-    
-    alt Cache HIT
-        S-->>AP: Access-Accept (desde caché)
+    S->>S: Buscar en caché de atributos (rlm_cache)
+
+    alt Cache HIT (atributos en Satellite)
+        S-->>AP: Access-Accept (desde caché local)
         Note over S: ">>> CACHE HIT" en radius.log
-    else Cache MISS
-        S->>M: Proxy Forward → Full Handshake
+    else Cache MISS → Mothership con Session Ticket
+        S->>M: Proxy Forward (UDP 1812)
+        M->>M: Reanudar sesión TLS (tlscache)
+        Note over M: Handshake acelerado por Session Ticket
+        M-->>S: Access-Accept + VLAN
+        S-->>AP: Access-Accept
     end
 ```
 
@@ -182,10 +186,23 @@ tls-config tls-common {
     # Certificado público del servidor RADIUS
     certificate_file = ${certdir}/upeu/server-cert.pem
 
-    # Certificado raíz de la CA de Microsoft Cloud PKI
-    # ⚠️  Debe coincidir con la Root CA configurada en Intune
-    ca_file = ${certdir}/upeu/ca-root.pem
+    # Cadena de confianza completa — Root CA + Issuing CA concatenadas.
+    # La PKI de Microsoft Cloud PKI es de DOS niveles: Root CA → Issuing CA → Certs.
+    # FreeRADIUS necesita ambas CAs para validar los certificados de cliente.
+    # Crear el archivo de cadena UNA vez (antes de arrancar el servicio):
+    #   sudo bash -c "cat ${certdir}/upeu/ca-root.pem ${certdir}/upeu/ca-issuing.pem \
+    #                 > ${certdir}/upeu/ca-chain.pem"
+    #   sudo chown freerad:freerad ${certdir}/upeu/ca-chain.pem
+    #   sudo chmod 640 ${certdir}/upeu/ca-chain.pem
+    ca_file = ${certdir}/upeu/ca-chain.pem
     ca_path = ${cadir}
+
+    # Verificación de revocación de certificados — esencial para Zero Trust.
+    # Si un dispositivo es robado y su cert se revoca en Microsoft Cloud PKI,
+    # FreeRADIUS descargará la CRL (URL en cloud-pki-config.md) y rechazará el cert.
+    # ⚠️  Requiere que la Mothership tenga acceso HTTPS saliente a:
+    #     https://pkicrl.manage.microsoft.com/crl/<TENANT_ID>/...
+    check_crl = yes
 
     # ================================================================
     #  RENDIMIENTO — Optimización para certificados de Microsoft
@@ -274,24 +291,12 @@ tls-config tls-common {
 
 ### 3.3 Cached-Session-Policy — Preservar VLANs en Fast Reconnect
 
-Cuando un dispositivo se reconecta usando un Session Ticket (caché TLS), FreeRADIUS salta el handshake EAP-TLS completo pero debe **restaurar los atributos de política** (VLAN, Reply-Message) para que el AP asigne correctamente la VLAN al alumno.
+Cuando la Mothership reanuda una sesión TLS usando un Session Ticket, FreeRADIUS salta la validación completa del certificado pero debe **restaurar los atributos de política** (VLAN, Reply-Message) para que el AP asigne correctamente la VLAN al alumno.
 
-El bloque `store {}` dentro de `cache {}` (incluido en la sección 3.2) controla qué atributos de respuesta se persisten junto con el Session Ticket:
-
-```ini
-# Dentro del bloque cache {} del tls-config tls-common
-# Los atributos listados se guardan al crear el Session Ticket
-# y se restauran automáticamente en reconexiones (Fast Reconnect).
-store {
-    &reply:Tunnel-Type               # Tipo de túnel VLAN (valor: 13)
-    &reply:Tunnel-Medium-Type        # Medio del túnel (valor: 6 = IEEE 802)
-    &reply:Tunnel-Private-Group-ID   # Número de VLAN (ej: "100", "200", "300")
-    &reply:Reply-Message             # Mensaje de bienvenida (opcional)
-}
-```
+El bloque `store {}` ya incluido dentro de `cache {}` en la sección 3.2 es el mecanismo para esto: los atributos `Tunnel-*` listados se guardan junto con el Session Ticket en `persist_dir` y se restauran automáticamente en cada reconexión rápida.
 
 > [!IMPORTANT]
-> **Sin `store {}`**, en una reconexión rápida el dispositivo entra a la red **sin VLAN asignada**, cayendo a la VLAN nativa del switch. Para verificar que funciona, buscar en el log de la Mothership que los paquetes `Access-Accept` de reconexión incluyen los atributos `Tunnel-*`.
+> **Sin `store {}`**, en una reconexión rápida el dispositivo entra a la red **sin VLAN asignada**, cayendo a la VLAN nativa del switch. Para verificar que funciona, comprobar que los paquetes `Access-Accept` de reconexión en el log de la Mothership incluyen los atributos `Tunnel-Type`, `Tunnel-Medium-Type` y `Tunnel-Private-Group-ID`.
 
 ### 3.4 Generar Parámetros Diffie-Hellman
 
@@ -376,6 +381,9 @@ flowchart LR
 
 ## 5. Optimización de Performance (Thread Pool)
 
+> [!WARNING]
+> **Instancia recomendada para producción:** El `t2.micro` (1 vCPU, 1 GB RAM) documentado en [despliegue-instancia.md](despliegue-instancia.md) es suficiente para laboratorio y pruebas, pero **no para producción universitaria**. Con `max_servers = 150` hilos realizando handshakes EAP-TLS (operaciones RSA/ECDSA), se agotarán los créditos de CPU del `t2.micro` en minutos durante el pico de inicio de clases. Para producción con ~5,000 alumnos, se recomienda mínimo **`t3.medium`** (2 vCPU, 4 GB RAM) o superior.
+
 📄 **Archivo:** `/etc/freeradius/3.0/radiusd.conf`
 
 ```bash
@@ -449,9 +457,76 @@ log {
 
 ---
 
-## 7. Validación y Activación
+## 7. Asignación de VLAN y Accounting (Virtual Server)
+
+📄 **Archivo:** `/etc/freeradius/3.0/sites-available/default`
+
+```bash
+sudo nano /etc/freeradius/3.0/sites-available/default
+```
+
+### 7.1 VLAN Assignment en `post-auth`
+
+Los atributos RADIUS para VLAN 802.1Q deben enviarse en el `Access-Accept`. Localizar la sección `post-auth {}` y agregar:
+
+```ini
+post-auth {
+    # ... directivas existentes ...
+
+    # ================================================================
+    #  ASIGNACIÓN DE VLAN — Basada en el CN del certificado
+    #
+    #  Pendiente: integración LDAP con Entra ID para asignación
+    #  dinámica según grupo (Alumnos, Docentes, Staff).
+    #  Ver: docs/04-identidad-y-pki/microsoft-entra-id.md
+    #
+    #  Configuración actual: estática por sufijo de dominio.
+    #  Reemplazar con política LDAP cuando esté disponible.
+    # ================================================================
+    if (&TLS-Client-Cert-Subject-Alt-Name-Email =~ /@upeu\.edu\.pe$/) {
+        update reply {
+            &Tunnel-Type            := VLAN     # Tipo: 802.1Q VLAN (valor 13)
+            &Tunnel-Medium-Type     := IEEE-802  # Medio: Ethernet (valor 6)
+            &Tunnel-Private-Group-Id := "<VLAN_ID_ALUMNOS>"  # Ej: "100"
+        }
+    }
+}
+```
+
+> [!NOTE]
+> **Mapeo de VLANs planificado** (pendiente integración LDAP con Entra ID):
+> - Grupo `Alumnos` → `Tunnel-Private-Group-Id = "<VLAN_ID_ALUMNOS>"`
+> - Grupo `Docentes` → `Tunnel-Private-Group-Id = "<VLAN_ID_DOCENTES>"`
+> - Grupo `Staff` → `Tunnel-Private-Group-Id = "<VLAN_ID_STAFF>"`
+
+### 7.2 Accounting en `accounting`
+
+FreeRADIUS procesa los paquetes Accounting-Request (UDP 1813) en la sección `accounting {}`. Agregar el módulo `detail` para registrar sesiones en disco:
+
+```ini
+accounting {
+    # Registrar paquetes de accounting en archivo de detalle
+    # (complementa el radius.log para auditoría de uso de red)
+    detail
+
+    # Actualizar la sesión en el log de autenticación
+    auth_log
+
+    # ... resto de directivas existentes ...
+}
+```
+
+> [!TIP]
+> Los registros de accounting se almacenan en `/var/log/freeradius/radacct/`. Cada AP crea un subdirectorio con su IP. Útil para auditoría de tiempo de conexión y uso de ancho de banda por usuario.
+
+---
+
+## 8. Validación y Activación
 
 ### Pre-vuelo (obligatorio antes de reiniciar)
+
+> [!CAUTION]
+> Asegúrate de haber creado `ca-chain.pem` (sección 3.2) antes de reiniciar. Sin ese archivo el servicio fallará al arrancar.
 
 ```bash
 # Verificar que no hay errores de sintaxis en toda la configuración
@@ -475,7 +550,7 @@ sudo systemctl enable freeradius
 
 ```bash
 # Desde la terminal del Satellite, usando un usuario de prueba
-radtest test1 <TEST_PASSWORD> <IP_MOTHERSHIP> 0 <SHARED_SECRET_UPEU>
+radtest test1 <TEST_PASSWORD> <IP_ELASTICA_MOTHERSHIP> 0 <SHARED_SECRET_UPEU>
 ```
 
 **Resultado esperado:** `Access-Accept` con atributos de sesión.
@@ -486,10 +561,15 @@ radtest test1 <TEST_PASSWORD> <IP_MOTHERSHIP> 0 <SHARED_SECRET_UPEU>
 
 | Archivo | Cambio Principal |
 |---|---|
-| `/etc/freeradius/3.0/clients.conf` | Registro de Satellites con `require_message_authenticator` |
+| `/etc/freeradius/3.0/clients.conf` | Registro de Satellites con BLASTRADIUS mitigation |
 | `/etc/freeradius/3.0/users` | Usuarios de prueba (eliminar en producción) |
-| `/etc/freeradius/3.0/mods-available/eap` | EAP-TLS + caché integrada + Session Tickets |
+| `/etc/freeradius/3.0/mods-available/eap` | EAP-TLS + caché TLS + Session Tickets + `check_crl` |
+| `/etc/freeradius/3.0/certs/upeu/ca-chain.pem` | Cadena Root CA + Issuing CA (crear con `cat`) |
 | `/etc/freeradius/3.0/radiusd.conf` | Thread pool + logging de auditoría |
-| `/var/log/freeradius/tlscache/` | Directorio de persistencia de caché |
-| `/var/log/freeradius/tickets/` | Directorio de Session Tickets |
+| `/etc/freeradius/3.0/sites-available/default` | VLAN assignment + accounting |
+| `/var/log/freeradius/tlscache/` | Directorio de persistencia de Session Tickets |
 | `crontab (root)` | Limpieza nocturna de caché |
+
+---
+
+→ **Siguiente paso:** [Cloud PKI — Configuración de Certificados](../04-identidad-y-pki/cloud-pki-config.md) — instalar los certificados Root CA e Issuing CA referenciados en la config EAP.
