@@ -106,6 +106,9 @@ home_server upeu-aws-mothership {
     # para detectar caídas de la Mothership antes de que llegue tráfico real
     status_check = status-server
 
+    # Mitigación BLASTRADIUS — requiere Message-Authenticator en respuestas
+    require_message_authenticator = yes
+
     # Timeouts de red — ajustados para latencia WAN Lima→AWS
     response_timeouts = 3
 }

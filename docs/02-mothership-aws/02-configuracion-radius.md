@@ -207,9 +207,11 @@ sudo chown freerad:freerad /etc/freeradius/3.0/certs/dh
 sudo cp /etc/freeradius/3.0/mods-available/eap /etc/freeradius/3.0/mods-available/eap.original.bak
 
 # Escribir configuración limpia
-sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'EOF'
+sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'ENDOFFILE'
 eap {
-    default_eap_type = tls
+    # Para pruebas con usuario/contraseña usar peap
+    # Para producción con certificados cambiar a tls
+    default_eap_type = peap
     timer_expire = 60
     ignore_unknown_eap_types = no
     cisco_accounting_username_bug = no
@@ -245,6 +247,13 @@ eap {
         tls = tls-common
     }
 
+    # Sub-módulos EAP requeridos por PEAP y TTLS
+    md5 {
+    }
+
+    mschapv2 {
+    }
+
     peap {
         tls = tls-common
         default_eap_type = mschapv2
@@ -257,7 +266,7 @@ eap {
         virtual_server = inner-tunnel
     }
 }
-EOF
+ENDOFFILE
 
 # Restaurar permisos del archivo
 sudo chown freerad:freerad /etc/freeradius/3.0/mods-available/eap
@@ -268,6 +277,18 @@ sudo chown freerad:freerad /etc/freeradius/3.0/mods-available/eap
 ```bash
 sudo freeradius -CX
 # Resultado esperado: "Configuration appears to be OK"
+```
+
+#### Paso 5: Habilitar el módulo mschap
+
+PEAP utiliza MSCHAPv2 internamente. El módulo debe estar habilitado:
+
+```bash
+# Crear symlink si no existe
+sudo ln -sf /etc/freeradius/3.0/mods-available/mschap /etc/freeradius/3.0/mods-enabled/mschap
+
+# Validar y reiniciar
+sudo freeradius -CX && sudo systemctl restart freeradius
 ```
 
 > [!WARNING]
@@ -300,8 +321,10 @@ sudo chown freerad:freerad /etc/freeradius/3.0/certs/dh
 ```bash
 sudo cp /etc/freeradius/3.0/mods-available/eap /etc/freeradius/3.0/mods-available/eap.temp.bak
 
-sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'EOF'
+sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'ENDOFFILE'
 eap {
+    # Producción: tls (certificados Cloud PKI)
+    # Pruebas con usuario/contraseña: peap
     default_eap_type = tls
     timer_expire = 60
     ignore_unknown_eap_types = no
@@ -355,6 +378,13 @@ eap {
         tls = tls-common
     }
 
+    # Sub-módulos EAP (requeridos por PEAP y TTLS)
+    md5 {
+    }
+
+    mschapv2 {
+    }
+
     peap {
         tls = tls-common
         default_eap_type = mschapv2
@@ -367,7 +397,7 @@ eap {
         virtual_server = inner-tunnel
     }
 }
-EOF
+ENDOFFILE
 
 sudo chown freerad:freerad /etc/freeradius/3.0/mods-available/eap
 ```

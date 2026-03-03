@@ -77,7 +77,8 @@ upeu-mothership-radius/
 │   │   └── configuracion-radius.md      # EAP-TLS + Caché TLS + Zero Trust + Performance
 │   ├── 03-satellites-locales/
 │   │   ├── instalacion-ubuntu.md        # Instalación en VMware / Ubuntu
-│   │   └── configuracion-proxy.md       # Reenvío de peticiones hacia AWS
+│   │   ├── configuracion-proxy.md       # Reenvío de peticiones hacia AWS
+│   │   └── configuracion-ap-unifi.md    # Adopción AP + UniFi Controller + SSID
 │   ├── 04-identidad-y-pki/
 │   │   ├── microsoft-entra-id.md        # App Registration y App Proxy
 │   │   ├── cloud-pki-config.md          # Certificados Root CA e Issuing CA
