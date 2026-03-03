@@ -1,4 +1,4 @@
-# Configuración RADIUS de la Mothership (AWS)
+# 2. Configuración RADIUS de la Mothership (AWS)
 
 > **Rol:** Servidor RADIUS Master — Cerebro central de autenticación  
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)  
