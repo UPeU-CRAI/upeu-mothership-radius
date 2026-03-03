@@ -1,4 +1,4 @@
-# Configuración Unificada del Satellite (Proxy Puro)
+# 2. Configuración Unificada del Satellite (Proxy Puro)
 
 > **Rol:** Satellite — Proxy puro con caché mínima de atributos para resiliencia
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)
