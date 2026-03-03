@@ -1,4 +1,4 @@
-# Despliegue de la Instancia FreeRADIUS en AWS
+# 1. Despliegue de la Instancia FreeRADIUS en AWS
 
 > **Rol:** Infraestructura de la Mothership (servidor RADIUS Master)  
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)  
