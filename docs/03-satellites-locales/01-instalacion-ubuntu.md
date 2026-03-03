@@ -1,4 +1,4 @@
-# Instalación del Satellite en Ubuntu
+# 1. Instalación del Satellite en Ubuntu
 
 > **Rol:** Servidor RADIUS Satellite — Proxy puro con caché mínima de atributos  
 > **Referencia:** [InkBridge Networks — RADIUS for Universities](https://www.inkbridgenetworks.com/blog/blog-10/radius-for-universities-122)  
