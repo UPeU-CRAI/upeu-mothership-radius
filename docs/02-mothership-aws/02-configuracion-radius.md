@@ -146,171 +146,277 @@ test2  Cleartext-Password := "<TEST_PASSWORD>"
 
 ---
 
-## 3. Módulo EAP-TLS con Persistencia de Caché Integrada
+## 3. Módulo EAP-TLS — Configuración Completa
 
-Este es el componente central del servidor. Integra la autenticación por certificados, la caché TLS para Fast Reconnect y los Session Tickets para persistencia en disco.
+Este es el componente central del servidor. Configura la autenticación por certificados, la caché TLS y los métodos EAP habilitados.
+
+> [!CAUTION]
+> **Lección aprendida:** NO editar el archivo EAP por defecto de Ubuntu (tiene ~1200 líneas con comentarios). Cualquier directiva duplicada o fuera de lugar rompe la inicialización TLS con el error `TLS Server requires a certificate file`. En su lugar, **reescribir el archivo completo** con la configuración mínima validada.
 
 📄 **Archivo:** `/etc/freeradius/3.0/mods-available/eap`
 
+### 3.1 Elegir tipo de certificados
+
+```mermaid
+flowchart TD
+    Q{"¿Tienes certificados<br/>de Azure Cloud PKI?"}
+    A["✅ Opción A: Producción<br/><i>Certificados de Microsoft Cloud PKI</i>"]
+    B["🧪 Opción B: Temporal<br/><i>Certificados autofirmados</i>"]
+
+    Q -->|"Sí"| A
+    Q -->|"No (aún)"| B
+
+    style A fill:#059669,color:#fff
+    style B fill:#d97706,color:#fff
+```
+
+---
+
+### 3.2 Opción B: Certificados temporales (sin Azure Cloud PKI)
+
+> Usar esta opción para **pruebas iniciales** cuando aún no se tienen los certificados de Microsoft Cloud PKI. Cuando los tengas, cambiar a la Opción A.
+
+#### Paso 1: Generar certificado autofirmado sin contraseña
+
 ```bash
-sudo nano /etc/freeradius/3.0/mods-available/eap
+# Generar llave + certificado autofirmado (válido 1 año)
+sudo openssl req -x509 -newkey rsa:2048 \
+    -keyout /etc/freeradius/3.0/certs/server-test.key \
+    -out /etc/freeradius/3.0/certs/server-test.pem \
+    -days 365 -nodes \
+    -subj "/CN=MOTHERSHIP-AWS"
+
+# Asignar permisos a FreeRADIUS
+sudo chown freerad:freerad /etc/freeradius/3.0/certs/server-test.key
+sudo chown freerad:freerad /etc/freeradius/3.0/certs/server-test.pem
+sudo chmod 640 /etc/freeradius/3.0/certs/server-test.key
 ```
 
-### 3.1 Tipo EAP por defecto
+#### Paso 2: Generar parámetros Diffie-Hellman
 
-Cambiar la **línea 27** del archivo:
-
-```ini
-# Antes:  default_eap_type = md5
-# Después: Forzar EAP-TLS exclusivamente (Zero Trust — sin contraseñas)
-default_eap_type = tls
+```bash
+# Generar parámetros DH (tarda 1-2 minutos)
+sudo openssl dhparam -out /etc/freeradius/3.0/certs/dh 2048
+sudo chown freerad:freerad /etc/freeradius/3.0/certs/dh
 ```
 
-### 3.2 Bloque `tls-config tls-common` — Configuración Completa
+#### Paso 3: Respaldar y reemplazar el archivo EAP
 
-Buscar la sección `tls-config tls-common { ... }` (aprox. línea 300) y reemplazar completamente:
+```bash
+# Respaldar el archivo original
+sudo cp /etc/freeradius/3.0/mods-available/eap /etc/freeradius/3.0/mods-available/eap.original.bak
 
-```ini
-tls-config tls-common {
+# Escribir configuración limpia
+sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'EOF'
+eap {
+    default_eap_type = tls
+    timer_expire = 60
+    ignore_unknown_eap_types = no
+    cisco_accounting_username_bug = no
+    max_sessions = ${max_requests}
 
-    # ================================================================
-    #  CERTIFICADOS — Rutas de la PKI de Microsoft Cloud (UPeU)
-    #  Ref: docs/04-identidad-y-pki/cloud-pki-config.md
-    # ================================================================
+    tls-config tls-common {
+        # --- CERTIFICADOS TEMPORALES (autofirmados) ---
+        # Cambiar a rutas de Cloud PKI cuando estén disponibles
+        private_key_file = /etc/freeradius/3.0/certs/server-test.key
+        certificate_file = /etc/freeradius/3.0/certs/server-test.pem
+        ca_file = /etc/freeradius/3.0/certs/server-test.pem
+        ca_path = /etc/freeradius/3.0/certs
+        dh_file = /etc/freeradius/3.0/certs/dh
+        random_file = /dev/urandom
 
-    # Llave privada del servidor RADIUS
-    # (Generada al configurar el certificado del servidor)
-    # private_key_password = <CERT_PASSWORD>   # Descomentar si la llave tiene passphrase
-    private_key_file = ${certdir}/upeu/server-key.pem
+        fragment_size = 1024
+        include_length = yes
 
-    # Certificado público del servidor RADIUS
-    certificate_file = ${certdir}/upeu/server-cert.pem
+        tls_min_version = "1.2"
+        tls_max_version = "1.2"
+        cipher_list = "DEFAULT"
+        ecdh_curve = "prime256v1"
 
-    # Cadena de confianza completa — Root CA + Issuing CA concatenadas.
-    # La PKI de Microsoft Cloud PKI es de DOS niveles: Root CA → Issuing CA → Certs.
-    # FreeRADIUS necesita ambas CAs para validar los certificados de cliente.
-    # Crear el archivo de cadena UNA vez (antes de arrancar el servicio):
-    #   sudo bash -c "cat ${certdir}/upeu/ca-root.pem ${certdir}/upeu/ca-issuing.pem \
-    #                 > ${certdir}/upeu/ca-chain.pem"
-    #   sudo chown freerad:freerad ${certdir}/upeu/ca-chain.pem
-    #   sudo chmod 640 ${certdir}/upeu/ca-chain.pem
-    ca_file = ${certdir}/upeu/ca-chain.pem
-    ca_path = ${cadir}
-
-    # Verificación de revocación de certificados — esencial para Zero Trust.
-    # Si un dispositivo es robado y su cert se revoca en Microsoft Cloud PKI,
-    # FreeRADIUS descargará la CRL (URL en cloud-pki-config.md) y rechazará el cert.
-    # ⚠️  Requiere que la Mothership tenga acceso HTTPS saliente a:
-    #     https://pkicrl.manage.microsoft.com/crl/<TENANT_ID>/...
-    check_crl = yes
-
-    # ================================================================
-    #  RENDIMIENTO — Optimización para certificados de Microsoft
-    #  InkBridge recomienda fragment_size ≥ 1024 para certificados
-    #  pesados de Cloud PKI que incluyen extensiones SCEP
-    # ================================================================
-
-    # Parámetros Diffie-Hellman (pre-generados)
-    dh_file = ${certdir}/dh
-
-    # Fuente de entropía para operaciones criptográficas
-    random_file = /dev/urandom
-
-    # Fragmentación de certificados — Crítico para dispositivos móviles
-    # Los certificados de Microsoft Cloud PKI son más grandes que los
-    # de una CA on-premise. Sin este valor, muchos dispositivos
-    # Android/iOS fallan en el handshake.
-    fragment_size = 1024
-    include_length = yes
-
-    # ================================================================
-    #  SEGURIDAD TLS — Protocolo y curvas criptográficas
-    # ================================================================
-
-    # TLS 1.2 mínimo; TLS 1.3 habilitado para clientes modernos
-    # (Windows 11, macOS 13+, iOS 16+, Android 10+).
-    # No se define tls_max_version para permitir TLS 1.3 automáticamente.
-    tls_min_version = "1.2"
-
-    # Suite de cifrado — solo ECDHE con Perfect Forward Secrecy.
-    # Excluye cifrados anónimos (!aNULL), MD5 obsoleto (!MD5) y DSS (!DSS).
-    cipher_list = "ECDHE+AESGCM:ECDHE+CHACHA20:!aNULL:!MD5:!DSS"
-
-    # Curva elíptica recomendada por Microsoft y compatibles con
-    # Windows 11, macOS y dispositivos móviles modernos.
-    # Dejarla vacía causa errores en clientes Windows 11.
-    ecdh_curve = "prime256v1"
-
-    # ================================================================
-    #  CACHÉ TLS + FAST RECONNECT — Estándar InkBridge
-    #
-    #  Objetivo: "Baja Latencia" — después del primer handshake
-    #  exitoso, las reconexiones se aceleran con Session Tickets.
-    #  NOTA: El tráfico SÍ viaja a la Mothership (AWS), pero el
-    #  handshake TLS es abreviado (resumption, no full).
-    #  Para reconexiones SIN viaje a AWS, ver la caché de atributos
-    #  del Satellite en docs/03-satellites-locales/configuracion-proxy.md
-    #
-    #  Diagrama de decisión:
-    #    Dispositivo se conecta → ¿Existe Session Ticket?
-    #      SÍ → Handshake abreviado (TLS resumption)
-    #      NO → Full handshake → Validar cert → Generar ticket
-    # ================================================================
-    cache {
-        # Habilitar caché de sesiones TLS
-        enable = yes
-
-        # Tiempo de vida de cada sesión en caché (horas)
-        # 24h cubre una jornada académica completa
-        lifetime = 24
-
-        # Cantidad máxima de sesiones en memoria
-        # Ajustar según población estudiantil activa
-        # Para ~5,000 alumnos, 1024 cubre una jornada completa con margen
-        max_entries = 1024
-
-        # Nombre interno del almacén de caché
-        # Obligatorio cuando se usa persist_dir
-        name = "EAP_TLS_Cache"
-
-        # Persistencia en disco — Las sesiones sobreviven un reinicio
-        # del servicio FreeRADIUS (ej: durante actualizaciones del SO)
-        persist_dir = "${logdir}/tlscache"
-
-        # Cached-Session-Policy: atributos restaurados en Fast Reconnect.
-        # Sin este bloque, una reconexión por Session Ticket no recupera
-        # la VLAN asignada y el dispositivo entra a la VLAN nativa del switch
-        # en lugar de su VLAN de grupo (Alumnos/Docentes/Staff).
-        store {
-            &reply:Tunnel-Type               # Tipo de túnel VLAN (valor: 13)
-            &reply:Tunnel-Medium-Type        # Medio del túnel (valor: 6 = IEEE 802)
-            &reply:Tunnel-Private-Group-ID   # Número de VLAN asignado (ej: "100")
-            &reply:Reply-Message             # Mensaje de bienvenida (opcional)
+        cache {
+            enable = yes
+            lifetime = 24
+            name = "EAP_TLS_Cache"
+            max_entries = 255
         }
     }
+
+    tls {
+        tls = tls-common
+    }
+
+    peap {
+        tls = tls-common
+        default_eap_type = mschapv2
+        virtual_server = inner-tunnel
+    }
+
+    ttls {
+        tls = tls-common
+        default_eap_type = md5
+        virtual_server = inner-tunnel
+    }
 }
+EOF
+
+# Restaurar permisos del archivo
+sudo chown freerad:freerad /etc/freeradius/3.0/mods-available/eap
 ```
 
-### 3.3 Cached-Session-Policy — Preservar VLANs en Fast Reconnect
+#### Paso 4: Validar
+
+```bash
+sudo freeradius -CX
+# Resultado esperado: "Configuration appears to be OK"
+```
+
+> [!WARNING]
+> **Certificados autofirmados = solo para pruebas.** Los dispositivos con Intune no confiarán en estos certificados. Para producción con EAP-TLS real, necesitas los certificados de Microsoft Cloud PKI (Opción A).
+
+---
+
+### 3.3 Opción A: Certificados de producción (Azure Cloud PKI)
+
+> Usar esta opción cuando tengas los certificados descargados de Microsoft Cloud PKI. Ver [cloud-pki-config.md](../04-identidad-y-pki/cloud-pki-config.md) para los pasos de creación y descarga de certificados.
+
+#### Paso 1: Instalar certificados en la Mothership
+
+Seguir los pasos de [cloud-pki-config.md — Paso 3](../04-identidad-y-pki/cloud-pki-config.md#paso-3-desplegar-certificados-en-la-mothership-aws) para transferir e instalar:
+- `ca-root.pem` — Root CA
+- `ca-issuing.pem` — Issuing CA
+- `server-cert.pem` — Certificado del servidor
+- `server-key.pem` — Llave privada del servidor
+- `ca-chain.pem` — Cadena (Root + Issuing concatenados)
+
+#### Paso 2: Generar parámetros Diffie-Hellman (si no existe)
+
+```bash
+sudo openssl dhparam -out /etc/freeradius/3.0/certs/dh 2048
+sudo chown freerad:freerad /etc/freeradius/3.0/certs/dh
+```
+
+#### Paso 3: Reemplazar el archivo EAP
+
+```bash
+sudo cp /etc/freeradius/3.0/mods-available/eap /etc/freeradius/3.0/mods-available/eap.temp.bak
+
+sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'EOF'
+eap {
+    default_eap_type = tls
+    timer_expire = 60
+    ignore_unknown_eap_types = no
+    cisco_accounting_username_bug = no
+    max_sessions = ${max_requests}
+
+    tls-config tls-common {
+        # --- CERTIFICADOS DE PRODUCCIÓN (Microsoft Cloud PKI) ---
+        # Ref: docs/04-identidad-y-pki/cloud-pki-config.md
+        #
+        # Descomentar si la llave tiene passphrase:
+        # private_key_password = <CERT_PASSWORD>
+        private_key_file = /etc/freeradius/3.0/certs/upeu/server-key.pem
+        certificate_file = /etc/freeradius/3.0/certs/upeu/server-cert.pem
+        ca_file = /etc/freeradius/3.0/certs/upeu/ca-chain.pem
+        ca_path = /etc/freeradius/3.0/certs
+        dh_file = /etc/freeradius/3.0/certs/dh
+        random_file = /dev/urandom
+
+        # Verificación CRL (revocar dispositivos robados)
+        check_crl = yes
+
+        # Rendimiento para certificados pesados de Cloud PKI
+        fragment_size = 1024
+        include_length = yes
+
+        # Seguridad TLS
+        tls_min_version = "1.2"
+        cipher_list = "ECDHE+AESGCM:ECDHE+CHACHA20:!aNULL:!MD5:!DSS"
+        ecdh_curve = "prime256v1"
+
+        # Caché TLS + Fast Reconnect
+        cache {
+            enable = yes
+            lifetime = 24
+            name = "EAP_TLS_Cache"
+            max_entries = 1024
+            persist_dir = "/var/log/freeradius/tlscache"
+
+            # Preservar VLANs en reconexiones rápidas
+            store {
+                &reply:Tunnel-Type
+                &reply:Tunnel-Medium-Type
+                &reply:Tunnel-Private-Group-ID
+                &reply:Reply-Message
+            }
+        }
+    }
+
+    tls {
+        tls = tls-common
+    }
+
+    peap {
+        tls = tls-common
+        default_eap_type = mschapv2
+        virtual_server = inner-tunnel
+    }
+
+    ttls {
+        tls = tls-common
+        default_eap_type = md5
+        virtual_server = inner-tunnel
+    }
+}
+EOF
+
+sudo chown freerad:freerad /etc/freeradius/3.0/mods-available/eap
+```
+
+#### Paso 4: Crear directorio de caché y validar
+
+```bash
+# Crear directorio de caché TLS
+sudo mkdir -p /var/log/freeradius/tlscache
+sudo chown freerad:freerad /var/log/freeradius/tlscache
+sudo chmod 700 /var/log/freeradius/tlscache
+
+# Validar configuración
+sudo freeradius -CX
+# Resultado esperado: "Configuration appears to be OK"
+```
+
+> [!IMPORTANT]
+> **Antes de arrancar con Opción A**, asegúrate de haber creado `ca-chain.pem`:
+> ```bash
+> sudo bash -c "cat /etc/freeradius/3.0/certs/upeu/ca-root.pem \
+>                    /etc/freeradius/3.0/certs/upeu/ca-issuing.pem \
+>               > /etc/freeradius/3.0/certs/upeu/ca-chain.pem"
+> sudo chown freerad:freerad /etc/freeradius/3.0/certs/upeu/ca-chain.pem
+> ```
+
+---
+
+### 3.4 Migrar de Opción B → Opción A
+
+Cuando obtengas los certificados de Azure Cloud PKI:
+
+| Paso | Acción |
+|---|---|
+| 1 | Descargar certificados de Cloud PKI → [cloud-pki-config.md](../04-identidad-y-pki/cloud-pki-config.md) |
+| 2 | Instalar en `/etc/freeradius/3.0/certs/upeu/` |
+| 3 | Crear `ca-chain.pem` (concatenar Root + Issuing) |
+| 4 | Reemplazar el archivo EAP con la Opción A (paso 3.3) |
+| 5 | Ejecutar `sudo freeradius -CX` para validar |
+| 6 | Reiniciar: `sudo systemctl restart freeradius` |
+
+### 3.5 Cached-Session-Policy — Preservar VLANs en Fast Reconnect
 
 Cuando la Mothership reanuda una sesión TLS usando un Session Ticket, FreeRADIUS salta la validación completa del certificado pero debe **restaurar los atributos de política** (VLAN, Reply-Message) para que el AP asigne correctamente la VLAN al alumno.
 
-El bloque `store {}` ya incluido dentro de `cache {}` en la sección 3.2 es el mecanismo para esto: los atributos `Tunnel-*` listados se guardan junto con el Session Ticket en `persist_dir` y se restauran automáticamente en cada reconexión rápida.
+El bloque `store {}` incluido dentro de `cache {}` en la Opción A es el mecanismo para esto: los atributos `Tunnel-*` se guardan junto con el Session Ticket en `persist_dir` y se restauran automáticamente en cada reconexión rápida.
 
 > [!IMPORTANT]
 > **Sin `store {}`**, en una reconexión rápida el dispositivo entra a la red **sin VLAN asignada**, cayendo a la VLAN nativa del switch. Para verificar que funciona, comprobar que los paquetes `Access-Accept` de reconexión en el log de la Mothership incluyen los atributos `Tunnel-Type`, `Tunnel-Medium-Type` y `Tunnel-Private-Group-ID`.
-
-### 3.4 Generar Parámetros Diffie-Hellman
-
-El archivo DH es requerido por la directiva `dh_file`. Se genera una sola vez:
-
-```bash
-# Generar parámetros DH de 2048 bits (tarda 2-5 minutos)
-sudo openssl dhparam -out /etc/freeradius/3.0/certs/dh 2048
-
-# Asignar propiedad al usuario del servicio
-sudo chown freerad:freerad /etc/freeradius/3.0/certs/dh
-```
 
 ---
 
@@ -524,7 +630,8 @@ accounting {
 ### Pre-vuelo (obligatorio antes de reiniciar)
 
 > [!CAUTION]
-> Asegúrate de haber creado `ca-chain.pem` (sección 3.2) antes de reiniciar. Sin ese archivo el servicio fallará al arrancar.
+> **Opción A (Cloud PKI):** Asegúrate de haber creado `ca-chain.pem` (sección 3.3) antes de reiniciar. Sin ese archivo el servicio fallará al arrancar.
+> **Opción B (Temporal):** No requiere `ca-chain.pem` — usa el certificado autofirmado directamente.
 
 ```bash
 # Verificar que no hay errores de sintaxis en toda la configuración
