@@ -30,12 +30,19 @@ if [[ -z "$INSTANCE" ]]; then
     echo "Uso: sudo bash satellite/deploy.sh <nombre_sede>"
     echo ""
     echo "Instancias disponibles:"
-    for f in "$SCRIPT_DIR/instances/"*.env 2>/dev/null; do
-        [[ -f "$f" ]] && echo "  - $(basename "$f" .env)"
-    done
+    if [[ -d "$SCRIPT_DIR/instances" ]]; then
+        for f in "$SCRIPT_DIR/instances/"*.env; do
+            [[ -f "$f" ]] && echo "  - $(basename "$f" .env)"
+        done
+    else
+        echo "  (ninguna — crear instances/<sede>.env)"
+    fi
     echo ""
     err "Especifica el nombre de la sede"
 fi
+
+# Crear directorio instances si no existe
+mkdir -p "$SCRIPT_DIR/instances"
 
 INSTANCE_ENV="$SCRIPT_DIR/instances/${INSTANCE}.env"
 [[ ! -f "$INSTANCE_ENV" ]] && err "No se encontró $INSTANCE_ENV"
