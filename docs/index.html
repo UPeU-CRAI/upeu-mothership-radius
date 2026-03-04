@@ -234,6 +234,13 @@
             color: var(--accent-blue);
         }
 
+        .toc-list a {
+            color: inherit;
+            text-decoration: none;
+            width: 100%;
+            display: inline-block;
+        }
+
         .toc-list li::before {
             content: counter(toc-counter, decimal-leading-zero);
             font-family: 'JetBrains Mono', monospace;
@@ -751,26 +758,26 @@
         <div class="toc page-break">
             <h2>Contenido</h2>
             <ol class="toc-list">
-                <li>Resumen Ejecutivo</li>
-                <li>Información del Proyecto</li>
-                <li>Problemática Actual</li>
-                <li>Solución Propuesta: Arquitectura Zero-Trust</li>
-                <li>Arquitectura Técnica</li>
-                <li>Stack Tecnológico</li>
-                <li>Flujo de Autenticación EAP-TLS</li>
-                <li>Modelo de Métricas y Datos</li>
-                <li>Fases de Implementación</li>
-                <li>Indicadores de Éxito (KPIs)</li>
-                <li>Análisis de Riesgos</li>
-                <li>Estimación de Inversión y Costos</li>
-                <li>Análisis Comparativo Antes / Después</li>
-                <li>Equipo y Stakeholders</li>
-                <li>Repositorio Técnico</li>
+                <li><a href="#seccion-1">Resumen Ejecutivo</a></li>
+                <li><a href="#seccion-2">Información del Proyecto</a></li>
+                <li><a href="#seccion-3">Problemática Actual</a></li>
+                <li><a href="#seccion-4">Solución Propuesta: Arquitectura Zero-Trust</a></li>
+                <li><a href="#seccion-5">Arquitectura Técnica</a></li>
+                <li><a href="#seccion-6">Stack Tecnológico</a></li>
+                <li><a href="#seccion-7">Flujo de Autenticación EAP-TLS</a></li>
+                <li><a href="#seccion-8">Modelo de Métricas y Datos</a></li>
+                <li><a href="#seccion-9">Fases de Implementación</a></li>
+                <li><a href="#seccion-10">Indicadores de Éxito (KPIs)</a></li>
+                <li><a href="#seccion-11">Análisis de Riesgos</a></li>
+                <li><a href="#seccion-12">Estimación de Inversión y Costos</a></li>
+                <li><a href="#seccion-13">Análisis Comparativo Antes / Después</a></li>
+                <li><a href="#seccion-14">Equipo y Stakeholders</a></li>
+                <li><a href="#seccion-15">Repositorio Técnico</a></li>
             </ol>
         </div>
 
         <!-- SECTION 1: RESUMEN EJECUTIVO -->
-        <div class="section page-break">
+        <div id="seccion-1" class="section page-break">
             <span class="section-number">SECCIÓN 01</span>
             <h2 class="section-title">Resumen Ejecutivo</h2>
             <p>
@@ -797,7 +804,7 @@
         </div>
 
         <!-- SECTION 2: INFO DEL PROYECTO -->
-        <div class="section">
+        <div id="seccion-2" class="section">
             <span class="section-number">SECCIÓN 02</span>
             <h2 class="section-title">Información del Proyecto</h2>
             <table class="info-table">
@@ -841,7 +848,7 @@
         </div>
 
         <!-- SECTION 3: PROBLEMÁTICA -->
-        <div class="section page-break">
+        <div id="seccion-3" class="section page-break">
             <span class="section-number">SECCIÓN 03</span>
             <h2 class="section-title">Problemática Actual: El Desafío de la Red Abierta</h2>
             <p>Actualmente, el CRAI enfrenta vulnerabilidades críticas en su gestión de accesos y red que comprometen
@@ -897,7 +904,7 @@
         </div>
 
         <!-- SECTION 4: SOLUCIÓN PROPUESTA -->
-        <div class="section page-break">
+        <div id="seccion-4" class="section page-break">
             <span class="section-number">SECCIÓN 04</span>
             <h2 class="section-title">Solución Propuesta: Arquitectura Zero-Trust</h2>
             <p>
@@ -938,7 +945,7 @@
         </div>
 
         <!-- SECTION 5: ARQUITECTURA TÉCNICA -->
-        <div class="section page-break">
+        <div id="seccion-5" class="section page-break">
             <span class="section-number">SECCIÓN 05</span>
             <h2 class="section-title">Arquitectura Técnica</h2>
             <p>La arquitectura sigue el modelo <strong>Mothership-Satellite</strong>, donde un servidor RADIUS maestro
@@ -1013,7 +1020,7 @@
         </div>
 
         <!-- SECTION 6: STACK TECNOLÓGICO -->
-        <div class="section">
+        <div id="seccion-6" class="section">
             <span class="section-number">SECCIÓN 06</span>
             <h2 class="section-title">Stack Tecnológico</h2>
 
@@ -1104,7 +1111,7 @@
         </div>
 
         <!-- SECTION 7: FLUJO DE AUTENTICACIÓN -->
-        <div class="section page-break">
+        <div id="seccion-7" class="section page-break">
             <span class="section-number">SECCIÓN 07</span>
             <h2 class="section-title">Flujo de Autenticación EAP-TLS</h2>
             <p>El siguiente diagrama de secuencia muestra el flujo completo de autenticación de un dispositivo desde que
@@ -1147,7 +1154,7 @@
         </div>
 
         <!-- SECTION 8: MODELO DE MÉTRICAS -->
-        <div class="section page-break">
+        <div id="seccion-8" class="section page-break">
             <span class="section-number">SECCIÓN 08</span>
             <h2 class="section-title">Modelo de Métricas y Datos</h2>
             <p>Una de las ventajas más significativas de esta arquitectura es la capacidad de generar métricas de uso
@@ -1232,7 +1239,7 @@
         </div>
 
         <!-- SECTION 9: FASES DE IMPLEMENTACIÓN -->
-        <div class="section page-break">
+        <div id="seccion-9" class="section page-break">
             <span class="section-number">SECCIÓN 09</span>
             <h2 class="section-title">Fases de Implementación</h2>
 
@@ -1279,7 +1286,7 @@
         </div>
 
         <!-- SECTION 10: KPIs -->
-        <div class="section page-break">
+        <div id="seccion-10" class="section page-break">
             <span class="section-number">SECCIÓN 10</span>
             <h2 class="section-title">Indicadores de Éxito (KPIs)</h2>
 
@@ -1342,7 +1349,7 @@
         </div>
 
         <!-- SECTION 11: RIESGOS -->
-        <div class="section">
+        <div id="seccion-11" class="section">
             <span class="section-number">SECCIÓN 11</span>
             <h2 class="section-title">Análisis de Riesgos</h2>
             <table class="tech-table">
@@ -1392,7 +1399,7 @@
         </div>
 
         <!-- SECTION 12: INVERSIÓN Y COSTOS -->
-        <div class="section page-break">
+        <div id="seccion-12" class="section page-break">
             <span class="section-number">SECCIÓN 12</span>
             <h2 class="section-title">Estimación de Inversión y Costos</h2>
             <p>A continuación se detalla el análisis de costos del proyecto, considerando que la UPeU cuenta actualmente
@@ -1574,7 +1581,7 @@
         </div>
 
         <!-- SECTION 13: COMPARACIÓN -->
-        <div class="section page-break">
+        <div id="seccion-13" class="section page-break">
             <span class="section-number">SECCIÓN 13</span>
             <h2 class="section-title">Análisis Comparativo: Antes vs. Después</h2>
 
@@ -1610,7 +1617,7 @@
         </div>
 
         <!-- SECTION 13: EQUIPO -->
-        <div class="section">
+        <div id="seccion-14" class="section">
             <span class="section-number">SECCIÓN 14</span>
             <h2 class="section-title">Equipo y Stakeholders</h2>
 
@@ -1643,7 +1650,7 @@
         </div>
 
         <!-- SECTION 14: REPOSITORIO -->
-        <div class="section">
+        <div id="seccion-15" class="section">
             <span class="section-number">SECCIÓN 15</span>
             <h2 class="section-title">Repositorio Técnico</h2>
             <p>Toda la documentación técnica, scripts de despliegue y configuraciones del proyecto se encuentran
