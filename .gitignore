@@ -1,8 +1,8 @@
 # Secretos de deploy (NUNCA subir a Git)
-.env
-deploy/.env
-!deploy/.env.example
-!.env.example
+deploy/mothership/.env
+deploy/satellite/instances/*.env
+!*.env.example
+!deploy/global.env
 
 # Local .terraform directories
 .terraform/
