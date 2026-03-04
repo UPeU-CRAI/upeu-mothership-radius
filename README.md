@@ -88,13 +88,20 @@ upeu-mothership-radius/
 │   │   └── mantenimiento.md             # Rotación de logs y limpieza
 │   ├── 06-troubleshooting/
 │   │   └── errores-comunes.md           # Soluciones a problemas frecuentes
+│   ├── 07-deploy/
+│   │   └── guia-despliegue.md           # Deploy automatizado con .env + templates
 │   └── assets/
 │       └── capturas/                    # Screenshots de Intune y configuración
+├── deploy/
+│   ├── .env.example                     # Template de variables (va al repo)
+│   ├── mothership/
+│   │   ├── deploy.sh                    # Script de despliegue Mothership
+│   │   └── templates/                   # eap.conf, clients.conf, users
+│   └── satellite/
+│       ├── deploy.sh                    # Script de despliegue Satellite
+│       └── templates/                   # proxy.conf, clients.conf
 ├── infrastructure/
 │   └── aws/                             # IaC Terraform (pendiente)
-├── freeradius/
-│   ├── clients.d/                       # Fragmentos clients.conf por sede (pendiente)
-│   └── certs/                           # Certificados Cloud PKI (pendiente — no commitear llaves privadas)
 ├── intune/
 │   └── profiles/                        # Export de políticas Intune (pendiente)
 └── .github/
