@@ -1,0 +1,17 @@
+# ============================================================================
+#  users — Mothership (generado por deploy.sh)
+#  Usuarios de prueba para validar la cadena completa
+# ============================================================================
+
+DEFAULT Framed-Protocol == PPP
+        Framed-Protocol = PPP,
+        Framed-Compression = Van-Jacobson-TCP-IP
+
+DEFAULT Hint == "CSLIP"
+        Framed-Protocol = SLIP,
+        Framed-Compression = Van-Jacobson-TCP-IP
+
+DEFAULT Hint == "SLIP"
+        Framed-Protocol = SLIP
+
+%%TEST_USER%%  Cleartext-Password := "%%TEST_PASSWORD%%"
