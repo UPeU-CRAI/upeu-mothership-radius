@@ -185,7 +185,8 @@ apply_clients_template() {
 
 # --- Aplicar template users -------------------------------------------------
 apply_users_template() {
-    local dst="$RADIUS_DIR/users"
+    # FreeRADIUS 3.x lee usuarios de mods-config/files/authorize, no de users
+    local dst="$RADIUS_DIR/mods-config/files/authorize"
     cp "$TEMPLATES_DIR/users" "$dst"
 
     sed -i "s|%%TEST_USER%%|$TEST_USER|g" "$dst"
@@ -199,7 +200,7 @@ BACKUP_DIR="$RADIUS_DIR/backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 cp -f "$RADIUS_DIR/mods-available/eap" "$BACKUP_DIR/eap" 2>/dev/null || true
 cp -f "$RADIUS_DIR/clients.conf" "$BACKUP_DIR/clients.conf" 2>/dev/null || true
-cp -f "$RADIUS_DIR/users" "$BACKUP_DIR/users" 2>/dev/null || true
+cp -f "$RADIUS_DIR/mods-config/files/authorize" "$BACKUP_DIR/authorize" 2>/dev/null || true
 log "Respaldo guardado en $BACKUP_DIR"
 
 # --- Aplicar ----------------------------------------------------------------
