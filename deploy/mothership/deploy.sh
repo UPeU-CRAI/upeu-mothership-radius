@@ -137,7 +137,7 @@ client $shortname {
 }
 
 "
-        info "  Satellite $i: $name ($ip)"
+        info "  Satellite $i: $name ($ip)" >&2
         ((i++))
     done
 
