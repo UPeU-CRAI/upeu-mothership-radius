@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRAI Smart Connect — Proyecto Ejecutivo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0f172a;
+            --deep-blue: #1e3a5f;
+            --accent-blue: #2563eb;
+            --accent-teal: #0d9488;
+            --accent-gold: #d97706;
+            --light-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --danger: #dc2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text-primary);
+            background: var(--light-bg);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                font-size: 11pt;
+            }
+
+            .cover-page {
+                page-break-after: always;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            .mermaid svg {
+                max-width: 100% !important;
+            }
+        }
+
+        /* ===== COVER PAGE ===== */
+        .cover-page {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--navy) 0%, var(--deep-blue) 50%, #1a3a6b 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover-page::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 80%;
+            height: 200%;
+            background: radial-gradient(ellipse, rgba(37, 99, 235, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .cover-page::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(ellipse, rgba(13, 148, 136, 0.1) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .cover-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(42px, 6vw, 72px);
+            color: #ffffff;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-title span {
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .cover-subtitle {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 650px;
+            margin-bottom: 50px;
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-info-item {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            backdrop-filter: blur(8px);
+        }
+
+        .cover-info-item .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 4px;
+        }
+
+        .cover-info-item .value {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .cover-version {
+            margin-top: 50px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== CONTENT AREA ===== */
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        /* ===== TABLE OF CONTENTS ===== */
+        .toc {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 50px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .toc h2 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            color: var(--navy);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-blue);
+            display: inline-block;
+        }
+
+        .toc-list {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+
+        .toc-list li {
+            counter-increment: toc-counter;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 15px;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .toc-list li:hover {
+            color: var(--accent-blue);
+        }
+
+        .toc-list li::before {
+            content: counter(toc-counter, decimal-leading-zero);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-blue);
+            background: #eff6ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 34px;
+            text-align: center;
+        }
+
+        /* ===== SECTIONS ===== */
+        .section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 44px;
+            margin-bottom: 36px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .section-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-blue);
+            background: #eff6ff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        h2.section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 30px;
+            color: var(--navy);
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-size: 19px;
+            color: var(--deep-blue);
+            margin: 28px 0 12px;
+            font-weight: 700;
+        }
+
+        h4 {
+            font-size: 16px;
+            color: var(--text-primary);
+            margin: 20px 0 8px;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+        }
+
+        /* ===== INFO TABLE ===== */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .info-table th {
+            background: var(--navy);
+            color: white;
+            padding: 12px 18px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .info-table td {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .info-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        .info-table td:first-child {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            width: 200px;
+        }
+
+        /* ===== PROBLEM CARDS ===== */
+        .problem-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .problem-card {
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid;
+        }
+
+        .problem-card.danger {
+            background: #fef2f2;
+            border-color: var(--danger);
+        }
+
+        .problem-card.warning {
+            background: #fffbeb;
+            border-color: var(--accent-gold);
+        }
+
+        .problem-card h4 {
+            margin: 0 0 8px;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .problem-card p {
+            font-size: 13px;
+            margin: 0;
+            color: var(--text-secondary);
+        }
+
+        /* ===== BENEFIT CARDS ===== */
+        .benefit-card {
+            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 12px 0;
+        }
+
+        .benefit-card h4 {
+            color: #166534;
+            margin: 0 0 6px;
+            font-size: 15px;
+        }
+
+        .benefit-card p {
+            color: #15803d;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        /* ===== DIAGRAM CONTAINER ===== */
+        .diagram-container {
+            background: #fafbfe;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px 20px;
+            margin: 24px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .diagram-container .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        .diagram-caption {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 12px;
+            font-style: italic;
+        }
+
+        /* ===== TECH STACK TABLE ===== */
+        .tech-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .tech-table th {
+            background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+            color: white;
+            padding: 14px 18px;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .tech-table td {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tech-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        .tech-badge {
+            display: inline-block;
+            background: #eff6ff;
+            color: var(--accent-blue);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ===== PHASE CARDS ===== */
+        .phase-card {
+            border-radius: 12px;
+            padding: 24px;
+            margin: 16px 0;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phase-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+        }
+
+        .phase-card.phase-1 {
+            background: #eff6ff;
+        }
+
+        .phase-card.phase-1::before {
+            background: var(--accent-blue);
+        }
+
+        .phase-card.phase-2 {
+            background: #f0fdf4;
+        }
+
+        .phase-card.phase-2::before {
+            background: var(--success);
+        }
+
+        .phase-card.phase-3 {
+            background: #fefce8;
+        }
+
+        .phase-card.phase-3::before {
+            background: var(--accent-gold);
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .phase-title {
+            font-weight: 700;
+            font-size: 17px;
+            color: var(--navy);
+        }
+
+        .phase-duration {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.7);
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+
+        .phase-items {
+            list-style: none;
+            padding: 0;
+        }
+
+        .phase-items li {
+            padding: 6px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .phase-items li::before {
+            content: '→';
+            color: var(--accent-blue);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* ===== KPI GRID ===== */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .kpi-card {
+            background: linear-gradient(135deg, var(--navy), var(--deep-blue));
+            border-radius: 12px;
+            padding: 22px;
+            text-align: center;
+            color: white;
+        }
+
+        .kpi-value {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ===== RISK TABLE ===== */
+        .risk-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .risk-high {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .risk-medium {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        .risk-low {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        /* ===== STAKEHOLDER CARDS ===== */
+        .stakeholder-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 20px 0;
+        }
+
+        .stakeholder-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .stakeholder-card .name {
+            font-weight: 700;
+            color: var(--navy);
+            font-size: 14px;
+        }
+
+        .stakeholder-card .role {
+            color: var(--accent-blue);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .stakeholder-card .desc {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* ===== FOOTER ===== */
+        .doc-footer {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        /* ===== CALLOUT ===== */
+        .callout {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 1px solid #93c5fd;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+
+        .callout.success {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border-color: #86efac;
+        }
+
+        .callout p {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 14px;
+        }
+
+        /* ===== COMPARISON TABLE ===== */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            margin: 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .compare-col {
+            padding: 24px;
+        }
+
+        .compare-col.before {
+            background: #fef2f2;
+            border-right: 2px solid var(--border);
+        }
+
+        .compare-col.after {
+            background: #f0fdf4;
+        }
+
+        .compare-col h4 {
+            margin: 0 0 14px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .compare-col.before h4 {
+            color: var(--danger);
+        }
+
+        .compare-col.after h4 {
+            color: var(--success);
+        }
+
+        .compare-item {
+            font-size: 13px;
+            padding: 6px 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .compare-item .icon {
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ===== COVER PAGE ===== -->
+    <div class="cover-page">
+        <div class="cover-badge">Proyecto Ejecutivo 2026</div>
+        <h1 class="cover-title">CRAI <span>Smart Connect</span></h1>
+        <p class="cover-subtitle">Gestión de Identidad Zero-Trust y Automatización de Métricas para el Centro de
+            Recursos para el Aprendizaje y la Investigación</p>
+
+        <div class="cover-info-grid">
+            <div class="cover-info-item">
+                <div class="label">Institución</div>
+                <div class="value">Universidad Peruana Unión</div>
+            </div>
+            <div class="cover-info-item">
+                <div class="label">Unidad Solicitante</div>
+                <div class="value">Dirección del CRAI / DTI</div>
+            </div>
+            <div class="cover-info-item">
+                <div class="label">Responsable Técnico</div>
+                <div class="value">Ing. Juan Alberto Sánchez</div>
+            </div>
+            <div class="cover-info-item">
+                <div class="label">Estado</div>
+                <div class="value">Fase de Piloto (RADIUS Validado)</div>
+            </div>
+        </div>
+
+        <div class="cover-version">
+            Campus Lima — Edificio CRAI &nbsp;|&nbsp; Versión 1.0 &nbsp;|&nbsp; Marzo 2026
+        </div>
+    </div>
+
+    <!-- ===== CONTENT ===== -->
+    <div class="content">
+
+        <!-- TABLE OF CONTENTS -->
+        <div class="toc page-break">
+            <h2>Contenido</h2>
+            <ol class="toc-list">
+                <li>Resumen Ejecutivo</li>
+                <li>Información del Proyecto</li>
+                <li>Problemática Actual</li>
+                <li>Solución Propuesta: Arquitectura Zero-Trust</li>
+                <li>Arquitectura Técnica</li>
+                <li>Stack Tecnológico</li>
+                <li>Flujo de Autenticación EAP-TLS</li>
+                <li>Modelo de Métricas y Datos</li>
+                <li>Fases de Implementación</li>
+                <li>Indicadores de Éxito (KPIs)</li>
+                <li>Análisis de Riesgos</li>
+                <li>Estimación de Inversión y Costos</li>
+                <li>Análisis Comparativo Antes / Después</li>
+                <li>Equipo y Stakeholders</li>
+                <li>Repositorio Técnico</li>
+            </ol>
+        </div>
+
+        <!-- SECTION 1: RESUMEN EJECUTIVO -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 01</span>
+            <h2 class="section-title">Resumen Ejecutivo</h2>
+            <p>
+                El proyecto <strong>CRAI Smart Connect</strong> propone sustituir los métodos de acceso manuales y las
+                redes Wi-Fi basadas en contraseñas estáticas por una infraestructura <strong>Zero-Trust</strong>.
+                Mediante la integración de <strong>FreeRADIUS</strong>, <strong>Microsoft Entra ID</strong> e
+                <strong>Intune</strong>, se automatizará el registro de asistencia y permanencia para acreditaciones
+                (SUNEDU/AAA), eliminando las colas en los ingresos y garantizando que solo dispositivos autorizados con
+                certificados digitales accedan a la red institucional.
+            </p>
+            <p>
+                La solución aprovecha el estándar <strong>IEEE 802.1X con EAP-TLS</strong> (autenticación basada en
+                certificados), eliminando por completo el uso de contraseñas compartidas. Cada dispositivo recibe un
+                certificado digital único a través de Microsoft Intune, que permite su identificación inequívoca al
+                conectarse a la red Wi-Fi del CRAI. Este mecanismo no solo refuerza la seguridad, sino que genera de
+                forma pasiva un registro completo de sesiones que se traduce en métricas de asistencia y permanencia.
+            </p>
+
+            <div class="callout success">
+                <p><strong>Logro actual:</strong> La conectividad RADIUS ya ha sido validada exitosamente en fase de
+                    piloto. El servidor Mothership en AWS y el Satellite local de Lima ya procesan autenticaciones de
+                    prueba con éxito, demostrando la viabilidad técnica de la arquitectura propuesta.</p>
+            </div>
+        </div>
+
+        <!-- SECTION 2: INFO DEL PROYECTO -->
+        <div class="section">
+            <span class="section-number">SECCIÓN 02</span>
+            <h2 class="section-title">Información del Proyecto</h2>
+            <table class="info-table">
+                <tr>
+                    <td>Proyecto</td>
+                    <td>CRAI Smart Connect</td>
+                </tr>
+                <tr>
+                    <td>Institución</td>
+                    <td>Universidad Peruana Unión (UPeU)</td>
+                </tr>
+                <tr>
+                    <td>Unidad Solicitante</td>
+                    <td>Dirección del CRAI / DTI Infraestructura</td>
+                </tr>
+                <tr>
+                    <td>Responsable Técnico</td>
+                    <td>Ing. Juan Alberto Sánchez (Infraestructura DTI)</td>
+                </tr>
+                <tr>
+                    <td>Sede de Aplicación</td>
+                    <td>Campus Lima (Edificio CRAI)</td>
+                </tr>
+                <tr>
+                    <td>Director CRAI</td>
+                    <td>Ing. David Orrego Granados</td>
+                </tr>
+                <tr>
+                    <td>Jefe de Tecnología Lima</td>
+                    <td>Ing. Davis Urquizo</td>
+                </tr>
+                <tr>
+                    <td>Director General DTI</td>
+                    <td>Ing. David Barrantes</td>
+                </tr>
+                <tr>
+                    <td>Estado Actual</td>
+                    <td>Fase de Piloto (Conectividad RADIUS Validada)</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECTION 3: PROBLEMÁTICA -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 03</span>
+            <h2 class="section-title">Problemática Actual: El Desafío de la Red Abierta</h2>
+            <p>Actualmente, el CRAI enfrenta vulnerabilidades críticas en su gestión de accesos y red que comprometen
+                tanto la seguridad institucional como la capacidad de generar métricas confiables para acreditación.</p>
+
+            <div class="problem-grid">
+                <div class="problem-card danger">
+                    <h4>🔓 Inseguridad en Conectividad</h4>
+                    <p>La red para estudiantes utiliza claves PSK (contraseñas compartidas) que se pegan en las paredes.
+                        Genera saturación por dispositivos no autorizados y requiere cambios de clave periódicos que
+                        obligan a todos a volver a ingresarla.</p>
+                </div>
+                <div class="problem-card danger">
+                    <h4>⚠️ Riesgo en Red del Personal</h4>
+                    <p>El personal utiliza antenas con claves compartidas únicas. Existe un riesgo alto de que estas
+                        claves se compartan con personas ajenas, comprometiendo la red administrativa.</p>
+                </div>
+                <div class="problem-card warning">
+                    <h4>🚶 Marcado Manual e Inexacto</h4>
+                    <p>El sistema de escaneo de carnets genera "cuellos de botella" en la entrada principal y no
+                        registra ingresos por accesos secundarios (Teatrín), arrojando estadísticas poco fiables.</p>
+                </div>
+                <div class="problem-card warning">
+                    <h4>📊 Falta de Datos de Permanencia</h4>
+                    <p>El método actual solo registra el ingreso pero no puede determinar cuánto tiempo permanece un
+                        usuario en el edificio ni en qué zonas se concentra la actividad.</p>
+                </div>
+            </div>
+
+            <div class="diagram-container">
+                <div class="mermaid">
+                    graph TD
+                    subgraph Actual["Estado Actual — Inseguro y Manual"]
+                    A["Clave en la Pared"] --> B("Estudiante digita clave")
+                    B --> C{"Conexion sin control"}
+                    D["Marcado de Carnet"] --> E["Cola en Puerta"]
+                    E --> F["Dato de Ingreso Inexacto"]
+                    G["Clave Personal Compartida"] --> H["Riesgo de Intrusion"]
+                    end
+                    subgraph Futuro["Estado Deseado — Zero-Trust"]
+                    I["Certificado Intune"] --> J("Conexion Automatica")
+                    J --> K["Registro de Asistencia Invisible"]
+                    K --> L["Metricas de Permanencia Reales"]
+                    M["Seguridad por Dispositivo"] --> N["Acceso Restringido y Seguro"]
+                    end
+
+                    style Actual fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+                    style Futuro fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+                </div>
+                <div class="diagram-caption">Diagrama 1 — Comparación del estado actual vs. estado deseado con
+                    arquitectura Zero-Trust</div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: SOLUCIÓN PROPUESTA -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 04</span>
+            <h2 class="section-title">Solución Propuesta: Arquitectura Zero-Trust</h2>
+            <p>
+                La solución se basa en el principio de <strong>"nunca confiar, siempre verificar"</strong>, donde cada
+                dispositivo debe demostrar su identidad mediante un certificado digital antes de obtener acceso a la
+                red. A diferencia de las contraseñas compartidas, un certificado digital es intransferible, se gestiona
+                centralmente y puede revocarse en cualquier momento.
+            </p>
+
+            <h3>Pilares de la Solución</h3>
+
+            <div class="benefit-card">
+                <h4>🔐 Autenticación basada en Certificados (EAP-TLS)</h4>
+                <p>Cada dispositivo gestionado por Intune recibe automáticamente un certificado SCEP emitido por
+                    Microsoft Cloud PKI. Al acercarse al CRAI, el dispositivo se conecta de forma invisible, sin
+                    intervención del usuario.</p>
+            </div>
+
+            <div class="benefit-card">
+                <h4>🏢 Segmentación Dinámica por Roles (VLAN)</h4>
+                <p>FreeRADIUS asigna automáticamente una VLAN según el grupo de Entra ID del usuario: estudiante,
+                    docente o personal administrativo. Esto garantiza el aislamiento de tráfico y políticas de seguridad
+                    diferenciadas.</p>
+            </div>
+
+            <div class="benefit-card">
+                <h4>📊 Métricas Automatizadas de Asistencia</h4>
+                <p>RADIUS Accounting registra Session-Start, Interim-Updates y Session-Stop. Estos datos permiten
+                    calcular asistencia, tiempo de permanencia y distribución por zonas — todo sin escaneo de carnets.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <h4>🛡️ Control de Acceso Granular</h4>
+                <p>Solo dispositivos corporativos gestionados por Intune con certificados vigentes pueden conectarse.
+                    Dispositivos personales sin certificado son rechazados automáticamente por la red.</p>
+            </div>
+        </div>
+
+        <!-- SECTION 5: ARQUITECTURA TÉCNICA -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 05</span>
+            <h2 class="section-title">Arquitectura Técnica</h2>
+            <p>La arquitectura sigue el modelo <strong>Mothership-Satellite</strong>, donde un servidor RADIUS maestro
+                en AWS centraliza las políticas y la validación de certificados, mientras que servidores satélite
+                locales en cada campus proporcionan resiliencia ante pérdidas de conectividad WAN.</p>
+
+            <div class="diagram-container">
+                <div class="mermaid">
+                    flowchart LR
+                    subgraph Campus["Campus Lima"]
+                    AP["Access Points\nUbiquiti UniFi / Ruckus"]
+                    SAT["SAT-LIMA-01\nFreeRADIUS Satellite"]
+                    end
+                    subgraph AWS["AWS Cloud"]
+                    MOTH["MOTHERSHIP-AWS\nFreeRADIUS Master"]
+                    end
+                    subgraph Microsoft["Microsoft Cloud"]
+                    ENTRA["Entra ID + Cloud PKI"]
+                    INTUNE["Intune SCEP/Wi-Fi"]
+                    end
+                    Device["Dispositivo"] -->|"EAP-TLS"| AP
+                    AP -->|"RADIUS\nUDP 1812"| SAT
+                    SAT -->|"Proxy"| MOTH
+                    MOTH -.->|"Valida certs"| ENTRA
+                    INTUNE -->|"Certificados"| Device
+
+                    style MOTH fill:#1a56db,color:#fff
+                    style SAT fill:#047857,color:#fff
+                    style AP fill:#7c3aed,color:#fff
+                    style Device fill:#d97706,color:#fff
+                    style ENTRA fill:#0078d4,color:#fff
+                    style INTUNE fill:#0078d4,color:#fff
+                </div>
+                <div class="diagram-caption">Diagrama 2 — Arquitectura Mothership-Satellite con integración Microsoft
+                    Cloud</div>
+            </div>
+
+            <h3>Componentes Principales</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Componente</th>
+                    <th>Ubicación</th>
+                    <th>Rol</th>
+                </tr>
+                <tr>
+                    <td><strong>MOTHERSHIP-AWS</strong></td>
+                    <td><span class="tech-badge">AWS EC2</span></td>
+                    <td>Servidor RADIUS Master — validación EAP-TLS, Session Tickets, y políticas RBAC centralizadas
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>SAT-LIMA-01</strong></td>
+                    <td><span class="tech-badge">VMware Local</span></td>
+                    <td>Proxy RADIUS local con caché de atributos (VLAN/Reply-Message) para resiliencia WAN</td>
+                </tr>
+                <tr>
+                    <td><strong>Access Points</strong></td>
+                    <td><span class="tech-badge">172.16.79.0/24</span></td>
+                    <td>Ubiquiti UniFi y Ruckus — sede Lima, clientes RADIUS configurados</td>
+                </tr>
+                <tr>
+                    <td><strong>Entra ID + Cloud PKI</strong></td>
+                    <td><span class="tech-badge">Azure</span></td>
+                    <td>Identidad, grupos RBAC y emisión de certificados Root/Issuing CA</td>
+                </tr>
+                <tr>
+                    <td><strong>Microsoft Intune</strong></td>
+                    <td><span class="tech-badge">Azure</span></td>
+                    <td>Distribución de perfiles SCEP y Wi-Fi a endpoints gestionados</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECTION 6: STACK TECNOLÓGICO -->
+        <div class="section">
+            <span class="section-number">SECCIÓN 06</span>
+            <h2 class="section-title">Stack Tecnológico</h2>
+
+            <div class="diagram-container">
+                <div class="mermaid">
+                    graph TB
+                    subgraph Identity["Capa de Identidad"]
+                    ENTRA["Microsoft Entra ID"]
+                    PKI["Microsoft Cloud PKI"]
+                    SCEP["Certificados SCEP"]
+                    end
+                    subgraph Management["Gestion de Endpoints"]
+                    INTUNE["Microsoft Intune"]
+                    WIFI_PROF["Perfiles Wi-Fi"]
+                    CERT_PROF["Perfiles de Certificado"]
+                    end
+                    subgraph Policy["Servidor de Politicas"]
+                    MOTH["FreeRADIUS 3.2.x\nMothership AWS"]
+                    SAT1["FreeRADIUS 3.2.x\nSatellite Lima"]
+                    end
+                    subgraph Network["Infraestructura de Red"]
+                    AP["Ubiquiti UniFi / Ruckus APs"]
+                    VLAN["VLANs Dinamicas"]
+                    end
+                    ENTRA --> PKI
+                    PKI --> SCEP
+                    SCEP --> INTUNE
+                    INTUNE --> WIFI_PROF
+                    INTUNE --> CERT_PROF
+                    WIFI_PROF --> AP
+                    CERT_PROF --> AP
+                    AP --> SAT1
+                    SAT1 --> MOTH
+                    MOTH --> ENTRA
+                    AP --> VLAN
+
+                    style Identity fill:#e0f2fe,stroke:#0284c7
+                    style Management fill:#fef3c7,stroke:#d97706
+                    style Policy fill:#dbeafe,stroke:#1a56db
+                    style Network fill:#f3e8ff,stroke:#7c3aed
+                </div>
+                <div class="diagram-caption">Diagrama 3 — Stack tecnológico completo y flujo de dependencias entre capas
+                </div>
+            </div>
+
+            <table class="tech-table">
+                <tr>
+                    <th>Capa</th>
+                    <th>Tecnología</th>
+                    <th>Versión / Detalle</th>
+                </tr>
+                <tr>
+                    <td><strong>Identidad</strong></td>
+                    <td>Microsoft Entra ID + Cloud PKI</td>
+                    <td>App Registration, Root CA, Issuing CA</td>
+                </tr>
+                <tr>
+                    <td><strong>Gestión de Endpoints</strong></td>
+                    <td>Microsoft Intune</td>
+                    <td>Perfiles SCEP y Wi-Fi (EAP-TLS)</td>
+                </tr>
+                <tr>
+                    <td><strong>Servidor de Políticas</strong></td>
+                    <td>FreeRADIUS</td>
+                    <td><span class="tech-badge">3.2.x LTS</span> en Ubuntu 24.04 LTS</td>
+                </tr>
+                <tr>
+                    <td><strong>Infraestructura Cloud</strong></td>
+                    <td>AWS EC2</td>
+                    <td>Instancia Mothership + Elastic IP</td>
+                </tr>
+                <tr>
+                    <td><strong>Infraestructura Local</strong></td>
+                    <td>VMware + Ubuntu</td>
+                    <td>Satellite FreeRADIUS local</td>
+                </tr>
+                <tr>
+                    <td><strong>Red Inalámbrica</strong></td>
+                    <td>Ubiquiti UniFi / Ruckus</td>
+                    <td>Access Points con 802.1X + VLANs</td>
+                </tr>
+                <tr>
+                    <td><strong>Cumplimiento</strong></td>
+                    <td>EAP-TLS / RBAC / Accounting</td>
+                    <td>IEEE 802.1X, Interim-Update</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECTION 7: FLUJO DE AUTENTICACIÓN -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 07</span>
+            <h2 class="section-title">Flujo de Autenticación EAP-TLS</h2>
+            <p>El siguiente diagrama de secuencia muestra el flujo completo de autenticación de un dispositivo desde que
+                solicita conexión Wi-Fi hasta que obtiene acceso con la VLAN correspondiente a su rol.</p>
+
+            <div class="diagram-container">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant D as Dispositivo
+                    participant AP as Access Point
+                    participant SAT as Satellite
+                    participant MOTH as Mothership
+                    participant ENTRA as Entra ID
+
+                    D->>AP: Solicitud de conexion Wi-Fi
+                    AP->>SAT: RADIUS Access-Request
+                    SAT->>MOTH: Proxy RADIUS
+                    MOTH->>MOTH: Valida certificado EAP-TLS
+                    MOTH->>ENTRA: Verifica identidad y grupo
+                    ENTRA-->>MOTH: Rol y VLAN asignada
+                    MOTH-->>SAT: Access-Accept + Atributos
+                    SAT-->>AP: Access-Accept con VLAN
+                    AP-->>D: Conexion Wi-Fi establecida
+                    Note over D,ENTRA: Registro de sesion = Asistencia automatica
+                </div>
+                <div class="diagram-caption">Diagrama 4 — Flujo de autenticación EAP-TLS completo</div>
+            </div>
+
+            <h3>Detalle del Proceso</h3>
+            <p><strong>1. Solicitud de conexión:</strong> El dispositivo detecta el SSID del CRAI y presenta su
+                certificado digital automáticamente (sin intervención del usuario).</p>
+            <p><strong>2. Validación local:</strong> El Access Point reenvía la solicitud al Satellite RADIUS local
+                (SAT-LIMA-01), que actúa como proxy hacia el Mothership en AWS.</p>
+            <p><strong>3. Verificación de identidad:</strong> El Mothership valida el certificado contra la cadena de
+                confianza de Microsoft Cloud PKI y consulta los grupos del usuario en Entra ID.</p>
+            <p><strong>4. Asignación de acceso:</strong> Según el grupo (estudiante, docente, personal), se asignan
+                atributos RADIUS específicos: VLAN, ancho de banda y políticas de acceso.</p>
+            <p><strong>5. Registro automático:</strong> El inicio de la sesión RADIUS genera automáticamente un registro
+                de asistencia con timestamp, MAC, usuario e identificador de AP (ubicación).</p>
+        </div>
+
+        <!-- SECTION 8: MODELO DE MÉTRICAS -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 08</span>
+            <h2 class="section-title">Modelo de Métricas y Datos</h2>
+            <p>Una de las ventajas más significativas de esta arquitectura es la capacidad de generar métricas de uso
+                automatizadas a partir de los datos de sesión RADIUS, sin necesidad de infraestructura adicional.</p>
+
+            <div class="diagram-container">
+                <div class="mermaid">
+                    flowchart TD
+                    subgraph Captura["Captura de Datos"]
+                    ACC["RADIUS Accounting\nStart/Stop/Interim"]
+                    SESS["Sesiones Wi-Fi\nMAC + User + AP"]
+                    end
+                    subgraph Proceso["Procesamiento"]
+                    LOG["Logs Centralizados\nMothership AWS"]
+                    ETL["Pipeline ETL\nNormalizacion"]
+                    end
+                    subgraph Metricas["Metricas Resultantes"]
+                    M1["Asistencia Diaria\nIngreso/Salida auto"]
+                    M2["Permanencia por Zona\nAP = Ubicacion"]
+                    M3["Horarios Pico\nDistribucion temporal"]
+                    M4["Ocupacion Tiempo Real\nSesiones activas"]
+                    end
+                    subgraph Salida["Reportes"]
+                    R1["Dashboard SUNEDU / AAA"]
+                    R2["Reporte de Acreditacion"]
+                    R3["Alertas de Capacidad"]
+                    end
+                    ACC --> LOG
+                    SESS --> LOG
+                    LOG --> ETL
+                    ETL --> M1
+                    ETL --> M2
+                    ETL --> M3
+                    ETL --> M4
+                    M1 --> R1
+                    M2 --> R1
+                    M3 --> R2
+                    M4 --> R3
+
+                    style Captura fill:#dbeafe,stroke:#1d4ed8
+                    style Proceso fill:#fef9c3,stroke:#ca8a04
+                    style Metricas fill:#dcfce7,stroke:#16a34a
+                    style Salida fill:#fce7f3,stroke:#db2777
+                </div>
+                <div class="diagram-caption">Diagrama 5 — Pipeline de captura, procesamiento y generación de métricas
+                </div>
+            </div>
+
+            <h3>Métricas Clave para Acreditación</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Métrica</th>
+                    <th>Fuente</th>
+                    <th>Uso</th>
+                </tr>
+                <tr>
+                    <td><strong>Asistencia Diaria</strong></td>
+                    <td>Session-Start / Session-Stop</td>
+                    <td>Reporte SUNEDU de uso de biblioteca</td>
+                </tr>
+                <tr>
+                    <td><strong>Permanencia por Zona</strong></td>
+                    <td>AP identifier + Session Duration</td>
+                    <td>Distribución de uso por áreas del CRAI</td>
+                </tr>
+                <tr>
+                    <td><strong>Horarios Pico</strong></td>
+                    <td>Distribución temporal de sesiones</td>
+                    <td>Planificación de recursos y horarios</td>
+                </tr>
+                <tr>
+                    <td><strong>Ocupación en Tiempo Real</strong></td>
+                    <td>Sesiones activas por AP</td>
+                    <td>Señalización digital de disponibilidad</td>
+                </tr>
+                <tr>
+                    <td><strong>Usuarios Únicos</strong></td>
+                    <td>User-Name deduplicado</td>
+                    <td>Estadísticas de penetración del servicio</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECTION 9: FASES DE IMPLEMENTACIÓN -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 09</span>
+            <h2 class="section-title">Fases de Implementación</h2>
+
+            <div class="phase-card phase-1">
+                <div class="phase-header">
+                    <div class="phase-title">Fase 1 — Piloto Técnico</div>
+                    <div class="phase-duration">~4 meses | Mar – Jun 2025 (Completada)</div>
+                </div>
+                <ul class="phase-items">
+                    <li>Despliegue del servidor Mothership en AWS EC2 (Ubuntu 24.04 + FreeRADIUS 3.2.x)</li>
+                    <li>Configuración del Satellite local en VMware (SAT-LIMA-01) con proxy hacia AWS</li>
+                    <li>Integración con Microsoft Entra ID: App Registration, Cloud PKI (Root CA + Issuing CA)</li>
+                    <li>Configuración de perfiles SCEP y Wi-Fi en Microsoft Intune</li>
+                    <li>Pruebas de autenticación EAP-TLS con grupo piloto reducido (DTI)</li>
+                </ul>
+            </div>
+
+            <div class="phase-card phase-2">
+                <div class="phase-header">
+                    <div class="phase-title">Fase 2 — Producción en el CRAI</div>
+                    <div class="phase-duration">~3 meses | Abr – Jun 2026</div>
+                </div>
+                <ul class="phase-items">
+                    <li>Distribución masiva de perfiles Intune a dispositivos gestionados</li>
+                    <li>Migración del SSID de estudiantes: de PSK a 802.1X/EAP-TLS</li>
+                    <li>Migración del SSID del personal: de clave compartida a certificados</li>
+                    <li>Activación de RADIUS Accounting con Interim-Updates para métricas</li>
+                    <li>Eliminación del marcado manual de carnets en la entrada</li>
+                </ul>
+            </div>
+
+            <div class="phase-card phase-3">
+                <div class="phase-header">
+                    <div class="phase-title">Fase 3 — Escalamiento Multi-Campus</div>
+                    <div class="phase-duration">~4 meses | Jul – Oct 2026</div>
+                </div>
+                <ul class="phase-items">
+                    <li>Desarrollo de dashboard de métricas para reportes SUNEDU/AAA</li>
+                    <li>Despliegue de Satellite en campus Juliaca (SAT-JULIACA-01)</li>
+                    <li>Despliegue de Satellite en campus Tarapoto (SAT-TARAPOTO-01)</li>
+                    <li>Unificación de métricas multi-campus en Mothership centralizado</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SECTION 10: KPIs -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 10</span>
+            <h2 class="section-title">Indicadores de Éxito (KPIs)</h2>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-value">0</div>
+                    <div class="kpi-label">Contraseñas compartidas</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">&lt;3s</div>
+                    <div class="kpi-label">Tiempo de conexión</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">100%</div>
+                    <div class="kpi-label">Asistencia automática</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">0</div>
+                    <div class="kpi-label">Colas en la entrada</div>
+                </div>
+            </div>
+
+            <table class="tech-table">
+                <tr>
+                    <th>KPI</th>
+                    <th>Meta</th>
+                    <th>Método de Medición</th>
+                </tr>
+                <tr>
+                    <td><strong>Contraseñas eliminadas</strong></td>
+                    <td>100% de SSIDs migrados a EAP-TLS</td>
+                    <td>Auditoría de configuración de APs</td>
+                </tr>
+                <tr>
+                    <td><strong>Tiempo de conexión</strong></td>
+                    <td>&lt; 3 segundos (con TLS Session Tickets)</td>
+                    <td>Logs de RADIUS (Access-Accept latency)</td>
+                </tr>
+                <tr>
+                    <td><strong>Cobertura de registro</strong></td>
+                    <td>100% de entradas registradas automáticamente</td>
+                    <td>Sesiones RADIUS vs. ingreso manual anterior</td>
+                </tr>
+                <tr>
+                    <td><strong>Precisión de permanencia</strong></td>
+                    <td>Margen de error &lt; 5 minutos</td>
+                    <td>Correlación Session-Start/Stop con observación</td>
+                </tr>
+                <tr>
+                    <td><strong>Disponibilidad del servicio</strong></td>
+                    <td>99.5% uptime del cluster RADIUS</td>
+                    <td>Monitoreo de health checks Mothership + Satellite</td>
+                </tr>
+                <tr>
+                    <td><strong>Dispositivos no autorizados</strong></td>
+                    <td>0 accesos sin certificado válido</td>
+                    <td>Access-Reject logs en FreeRADIUS</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECTION 11: RIESGOS -->
+        <div class="section">
+            <span class="section-number">SECCIÓN 11</span>
+            <h2 class="section-title">Análisis de Riesgos</h2>
+            <table class="tech-table">
+                <tr>
+                    <th>Riesgo</th>
+                    <th>Probabilidad</th>
+                    <th>Impacto</th>
+                    <th>Mitigación</th>
+                </tr>
+                <tr>
+                    <td>Pérdida de conectividad WAN hacia AWS</td>
+                    <td><span class="risk-badge risk-medium">Media</span></td>
+                    <td><span class="risk-badge risk-high">Alto</span></td>
+                    <td>Satellite local con caché de atributos permite autenticación offline temporal</td>
+                </tr>
+                <tr>
+                    <td>Expiración de certificados sin renovación</td>
+                    <td><span class="risk-badge risk-low">Baja</span></td>
+                    <td><span class="risk-badge risk-high">Alto</span></td>
+                    <td>Intune gestiona renovación automática de certificados SCEP antes del vencimiento</td>
+                </tr>
+                <tr>
+                    <td>Resistencia al cambio por usuarios</td>
+                    <td><span class="risk-badge risk-medium">Media</span></td>
+                    <td><span class="risk-badge risk-medium">Medio</span></td>
+                    <td>La conexión es automática e invisible — menor fricción que el sistema actual</td>
+                </tr>
+                <tr>
+                    <td>Dispositivos no gestionados por Intune</td>
+                    <td><span class="risk-badge risk-medium">Media</span></td>
+                    <td><span class="risk-badge risk-medium">Medio</span></td>
+                    <td>SSID invitado con portal cautivo para dispositivos temporales o BYOD</td>
+                </tr>
+                <tr>
+                    <td>Saturación del servidor Mothership</td>
+                    <td><span class="risk-badge risk-low">Baja</span></td>
+                    <td><span class="risk-badge risk-medium">Medio</span></td>
+                    <td>TLS Session Tickets reducen carga; escalamiento vertical en EC2 si es necesario</td>
+                </tr>
+                <tr>
+                    <td>Incompatibilidad de Access Points</td>
+                    <td><span class="risk-badge risk-low">Baja</span></td>
+                    <td><span class="risk-badge risk-low">Bajo</span></td>
+                    <td>UniFi y Ruckus soportan nativamente 802.1X y RADIUS; ya validado en piloto</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECTION 12: INVERSIÓN Y COSTOS -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 12</span>
+            <h2 class="section-title">Estimación de Inversión y Costos</h2>
+            <p>A continuación se detalla el análisis de costos del proyecto, considerando que la UPeU cuenta actualmente
+                con licenciamiento <strong>Microsoft 365 A3 y A5 para Educación</strong>. Estas licencias incluyen
+                <strong>Intune Plan 1</strong> (gestión de dispositivos, perfiles Wi-Fi, perfiles de certificado SCEP),
+                pero <strong>no incluyen Microsoft Cloud PKI</strong>, que es un componente clave para este proyecto.
+            </p>
+
+            <div class="callout">
+                <p><strong>Nota sobre licenciamiento:</strong> Microsoft anunció en diciembre 2025 que Cloud PKI se
+                    incluirá en Microsoft 365 E5 a partir de julio 2026. Sin embargo, este cambio aplica a licencias
+                    <strong>Enterprise (E3/E5)</strong>, no a licencias <strong>Education (A3/A5)</strong> de forma
+                    confirmada. Se recomienda monitorear las actualizaciones de Microsoft para el segmento educativo.
+                    Mientras tanto, Cloud PKI debe adquirirse como add-on.</p>
+            </div>
+
+            <h3>Licenciamiento Microsoft — Costos Adicionales</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Concepto</th>
+                    <th>Modalidad</th>
+                    <th>Costo Unitario</th>
+                    <th>Estimación Anual</th>
+                </tr>
+                <tr>
+                    <td><strong>Microsoft 365 A3/A5 (Intune Plan 1)</strong></td>
+                    <td>Ya adquirido</td>
+                    <td colspan="2" style="text-align:center; color: #16a34a; font-weight:600;">Incluido en
+                        licenciamiento actual</td>
+                </tr>
+                <tr>
+                    <td><strong>Microsoft Cloud PKI</strong><br><span style="font-size:12px;color:#64748b;">Add-on para
+                            Intune Plan 1</span></td>
+                    <td>Por usuario / mes</td>
+                    <td>USD $2.00 / usuario / mes</td>
+                    <td>Depende del Nº de usuarios*</td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="font-size:12px; color:#64748b; padding:8px 18px;">
+                        <strong>*Escenarios de ejemplo:</strong><br>
+                        &nbsp;&nbsp;• 500 usuarios → USD $1,000/mes → <strong>USD $12,000/año</strong><br>
+                        &nbsp;&nbsp;• 1,000 usuarios → USD $2,000/mes → <strong>USD $24,000/año</strong><br>
+                        &nbsp;&nbsp;• 2,000 usuarios → USD $4,000/mes → <strong>USD $48,000/año</strong><br>
+                        <em>Nota: Existe un precio educativo reducido (~USD $0.32/usuario/mes). Consultar con el partner
+                            de Microsoft.</em>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Intune Suite (alternativa)</strong><br><span
+                            style="font-size:12px;color:#64748b;">Incluye Cloud PKI + Remote Help + EPM + Analytics +
+                            más</span></td>
+                    <td>Por usuario / mes</td>
+                    <td>USD $10.00 / usuario / mes</td>
+                    <td>Evaluar si se necesitan los demás componentes</td>
+                </tr>
+            </table>
+
+            <h3>Infraestructura AWS — Servidor Mothership</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Recurso AWS</th>
+                    <th>Tipo / Especificación</th>
+                    <th>Costo Mensual (USD)</th>
+                    <th>Costo Anual (USD)</th>
+                </tr>
+                <tr>
+                    <td><strong>EC2 Instance</strong><br><span style="font-size:12px;color:#64748b;">Mothership
+                            FreeRADIUS</span></td>
+                    <td>t3.medium (2 vCPU, 4 GB RAM)<br>Ubuntu 24.04 LTS</td>
+                    <td>~$30 – $35</td>
+                    <td>~$360 – $420</td>
+                </tr>
+                <tr>
+                    <td><strong>Elastic IP</strong></td>
+                    <td>1 IP estática asignada a Mothership</td>
+                    <td>~$3.65 (si está asociada)</td>
+                    <td>~$44</td>
+                </tr>
+                <tr>
+                    <td><strong>EBS Storage</strong><br><span style="font-size:12px;color:#64748b;">Disco del sistema +
+                            logs</span></td>
+                    <td>gp3, 30 GB</td>
+                    <td>~$2.40</td>
+                    <td>~$29</td>
+                </tr>
+                <tr>
+                    <td><strong>Snapshots / Backups</strong><br><span style="font-size:12px;color:#64748b;">Backup
+                            diario automático</span></td>
+                    <td>EBS Snapshots incrementales</td>
+                    <td>~$3 – $5</td>
+                    <td>~$36 – $60</td>
+                </tr>
+                <tr>
+                    <td><strong>Data Transfer</strong><br><span style="font-size:12px;color:#64748b;">Tráfico RADIUS
+                            (bajo volumen)</span></td>
+                    <td>Salida a Internet ~5 GB/mes</td>
+                    <td>~$0.50</td>
+                    <td>~$6</td>
+                </tr>
+                <tr>
+                    <td><strong>CloudWatch Monitoring</strong></td>
+                    <td>Métricas básicas + alarmas</td>
+                    <td>~$3 – $5</td>
+                    <td>~$36 – $60</td>
+                </tr>
+                <tr style="background: #f0fdf4;">
+                    <td colspan="2" style="font-weight:700; text-align:right;">Subtotal AWS (estimado)</td>
+                    <td style="font-weight:700;">~$43 – $54</td>
+                    <td style="font-weight:700;">~$511 – $619</td>
+                </tr>
+            </table>
+
+            <h3>Infraestructura Local — Satellite</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Recurso</th>
+                    <th>Detalle</th>
+                    <th>Costo</th>
+                </tr>
+                <tr>
+                    <td><strong>VM Satellite (SAT-LIMA-01)</strong></td>
+                    <td>Ubuntu 24.04 en VMware existente (2 vCPU, 2 GB RAM)</td>
+                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional (infraestructura existente)</td>
+                </tr>
+                <tr>
+                    <td><strong>Access Points</strong></td>
+                    <td>Ubiquiti UniFi y Ruckus ya desplegados en el CRAI</td>
+                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional (infraestructura existente)</td>
+                </tr>
+                <tr>
+                    <td><strong>Satellites adicionales</strong><br><span style="font-size:12px;color:#64748b;">Fase 3:
+                            Juliaca y Tarapoto</span></td>
+                    <td>VM en VMware existente por campus</td>
+                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional (infraestructura existente)</td>
+                </tr>
+            </table>
+
+            <h3>Resumen de Inversión Total Estimada</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Categoría</th>
+                    <th>Costo Anual (USD)</th>
+                    <th>Notas</th>
+                </tr>
+                <tr>
+                    <td><strong>Microsoft Cloud PKI (add-on)</strong></td>
+                    <td>$12,000 – $48,000</td>
+                    <td>Depende del número de usuarios (500–2,000). Posible precio educativo reducido.</td>
+                </tr>
+                <tr>
+                    <td><strong>Infraestructura AWS</strong></td>
+                    <td>$511 – $619</td>
+                    <td>Mothership RADIUS + backups + monitoreo</td>
+                </tr>
+                <tr>
+                    <td><strong>Infraestructura Local</strong></td>
+                    <td>$0</td>
+                    <td>Uso de VMware y Access Points existentes</td>
+                </tr>
+                <tr>
+                    <td><strong>Software (FreeRADIUS)</strong></td>
+                    <td>$0</td>
+                    <td>Open source (GPLv2)</td>
+                </tr>
+                <tr style="background: linear-gradient(135deg, #eff6ff, #dbeafe);">
+                    <td style="font-weight:700; font-size:15px;">TOTAL ESTIMADO</td>
+                    <td style="font-weight:700; font-size:15px;">$12,511 – $48,619 / año</td>
+                    <td style="font-weight:600;">El costo principal es el licenciamiento de Cloud PKI</td>
+                </tr>
+            </table>
+
+            <div class="callout success">
+                <p><strong>Oportunidad de ahorro:</strong> Si Microsoft extiende la inclusión de Cloud PKI a licencias
+                    Education A5 (como lo ha hecho con E5), el costo del proyecto se reduciría únicamente a la
+                    infraestructura AWS (~USD $550/año), convirtiendo esta solución en una de las más económicas
+                    posibles para autenticación Zero-Trust a nivel institucional.</p>
+            </div>
+        </div>
+
+        <!-- SECTION 13: COMPARACIÓN -->
+        <div class="section page-break">
+            <span class="section-number">SECCIÓN 13</span>
+            <h2 class="section-title">Análisis Comparativo: Antes vs. Después</h2>
+
+            <div class="compare-grid">
+                <div class="compare-col before">
+                    <h4>❌ Antes (Estado Actual)</h4>
+                    <div class="compare-item"><span class="icon">•</span> Claves PSK pegadas en las paredes</div>
+                    <div class="compare-item"><span class="icon">•</span> Configuración manual por cada usuario</div>
+                    <div class="compare-item"><span class="icon">•</span> Dispositivos no autorizados en la red</div>
+                    <div class="compare-item"><span class="icon">•</span> Cambio de clave afecta a todos los usuarios
+                    </div>
+                    <div class="compare-item"><span class="icon">•</span> Escaneo de carnet genera colas</div>
+                    <div class="compare-item"><span class="icon">•</span> No se registran accesos secundarios</div>
+                    <div class="compare-item"><span class="icon">•</span> Sin datos de permanencia ni zonas</div>
+                    <div class="compare-item"><span class="icon">•</span> Red del personal vulnerable a filtraciones
+                    </div>
+                    <div class="compare-item"><span class="icon">•</span> Métricas manuales, incompletas</div>
+                </div>
+                <div class="compare-col after">
+                    <h4>✅ Después (CRAI Smart Connect)</h4>
+                    <div class="compare-item"><span class="icon">•</span> Certificados digitales individuales</div>
+                    <div class="compare-item"><span class="icon">•</span> Conexión automática sin intervención</div>
+                    <div class="compare-item"><span class="icon">•</span> Solo dispositivos gestionados acceden</div>
+                    <div class="compare-item"><span class="icon">•</span> Revocación individual sin afectar a otros
+                    </div>
+                    <div class="compare-item"><span class="icon">•</span> Registro invisible al conectarse</div>
+                    <div class="compare-item"><span class="icon">•</span> Cobertura total de todos los accesos</div>
+                    <div class="compare-item"><span class="icon">•</span> Permanencia y zonas por AP</div>
+                    <div class="compare-item"><span class="icon">•</span> Red del personal aislada por certificado</div>
+                    <div class="compare-item"><span class="icon">•</span> Dashboard automatizado para SUNEDU</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 13: EQUIPO -->
+        <div class="section">
+            <span class="section-number">SECCIÓN 14</span>
+            <h2 class="section-title">Equipo y Stakeholders</h2>
+
+            <div class="stakeholder-grid">
+                <div class="stakeholder-card">
+                    <div class="name">Ing. Juan Alberto Sánchez</div>
+                    <div class="role">Responsable Técnico — Infraestructura DTI</div>
+                    <div class="desc">Líder técnico del proyecto. Responsable del diseño, implementación y operación de
+                        la infraestructura RADIUS y la integración con Microsoft Cloud.</div>
+                </div>
+                <div class="stakeholder-card">
+                    <div class="name">Ing. David Orrego Granados</div>
+                    <div class="role">Director del CRAI</div>
+                    <div class="desc">Stakeholder principal. Define los requerimientos de métricas de asistencia y
+                        permanencia para acreditación institucional.</div>
+                </div>
+                <div class="stakeholder-card">
+                    <div class="name">Ing. Davis Urquizo</div>
+                    <div class="role">Jefe de Tecnología Lima</div>
+                    <div class="desc">Supervisa la infraestructura de red del campus Lima. Coordina la migración de
+                        SSIDs y la configuración de Access Points.</div>
+                </div>
+                <div class="stakeholder-card">
+                    <div class="name">Ing. David Barrantes</div>
+                    <div class="role">Director General DTI</div>
+                    <div class="desc">Aprobador ejecutivo. Valida el alineamiento del proyecto con la estrategia
+                        tecnológica institucional y autoriza recursos.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 14: REPOSITORIO -->
+        <div class="section">
+            <span class="section-number">SECCIÓN 15</span>
+            <h2 class="section-title">Repositorio Técnico</h2>
+            <p>Toda la documentación técnica, scripts de despliegue y configuraciones del proyecto se encuentran
+                versionados en un repositorio Git centralizado, siguiendo prácticas de Infrastructure as Code (IaC).</p>
+
+            <div class="callout">
+                <p><strong>Repositorio:</strong> <code>github.com/UPeU-CRAI/upeu-mothership-radius</code></p>
+            </div>
+
+            <h3>Estructura del Repositorio</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Directorio</th>
+                    <th>Contenido</th>
+                </tr>
+                <tr>
+                    <td><code>docs/</code></td>
+                    <td>Documentación completa: arquitectura, despliegue, identidad/PKI, operaciones y troubleshooting
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>deploy/mothership/</code></td>
+                    <td>Scripts de despliegue automatizado y templates de configuración del Mothership</td>
+                </tr>
+                <tr>
+                    <td><code>deploy/satellite/</code></td>
+                    <td>Scripts de despliegue y templates para Satellites locales</td>
+                </tr>
+                <tr>
+                    <td><code>infrastructure/aws/</code></td>
+                    <td>Infraestructura como Código con Terraform (en desarrollo)</td>
+                </tr>
+                <tr>
+                    <td><code>intune/profiles/</code></td>
+                    <td>Exportación de políticas y perfiles de Microsoft Intune</td>
+                </tr>
+                <tr>
+                    <td><code>.github/workflows/</code></td>
+                    <td>Pipelines CI/CD con GitHub Actions</td>
+                </tr>
+            </table>
+
+            <h3>Documentación Técnica Disponible</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Documento</th>
+                    <th>Descripción</th>
+                </tr>
+                <tr>
+                    <td><code>01-arquitectura/flujo-autenticacion.md</code></td>
+                    <td>Diagrama y flujo completo Mothership ↔ Satellites</td>
+                </tr>
+                <tr>
+                    <td><code>02-mothership-aws/despliegue-instancia.md</code></td>
+                    <td>Guía de creación de instancia EC2 e instalación de FreeRADIUS</td>
+                </tr>
+                <tr>
+                    <td><code>02-mothership-aws/configuracion-radius.md</code></td>
+                    <td>Configuración EAP-TLS, caché TLS, Zero Trust y performance</td>
+                </tr>
+                <tr>
+                    <td><code>03-satellites-locales/configuracion-proxy.md</code></td>
+                    <td>Reenvío de peticiones hacia AWS</td>
+                </tr>
+                <tr>
+                    <td><code>04-identidad-y-pki/cloud-pki-config.md</code></td>
+                    <td>Configuración de Microsoft Cloud PKI (Root CA + Issuing CA)</td>
+                </tr>
+                <tr>
+                    <td><code>04-identidad-y-pki/perfiles-intune.md</code></td>
+                    <td>Perfiles SCEP y Wi-Fi con checklist de configuración</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="doc-footer">
+            <strong>CRAI Smart Connect</strong> — Proyecto Ejecutivo v1.0<br>
+            Universidad Peruana Unión &nbsp;|&nbsp; Dirección de Tecnología de la Información &nbsp;|&nbsp; 2026<br>
+            <span style="color:#94a3b8;">Documento generado para presentación institucional</span>
+        </div>
+
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#dbeafe',
+                primaryTextColor: '#1e293b',
+                primaryBorderColor: '#93c5fd',
+                lineColor: '#64748b',
+                secondaryColor: '#f0fdf4',
+                tertiaryColor: '#fef3c7',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 16,
+                htmlLabels: true,
+                useMaxWidth: true
+            },
+            sequence: {
+                useMaxWidth: true,
+                wrap: true,
+                actorFontSize: 14,
+                messageFontSize: 13
+            },
+            gantt: {
+                useMaxWidth: true,
+                fontSize: 13,
+                barHeight: 24,
+                barGap: 6,
+                topPadding: 40,
+                sidePadding: 60
+            }
+        });
+    </script>
+
+</body>
+
+</html>
