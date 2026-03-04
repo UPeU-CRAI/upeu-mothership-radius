@@ -240,6 +240,7 @@ eap {
             lifetime = 24
             name = "EAP_TLS_Cache"
             max_entries = 255
+            persist_dir = "/var/log/freeradius/tlscache"
         }
     }
 
@@ -272,9 +273,15 @@ ENDOFFILE
 sudo chown freerad:freerad /etc/freeradius/3.0/mods-available/eap
 ```
 
-#### Paso 4: Validar
+#### Paso 4: Crear directorio de caché y validar
 
 ```bash
+# Crear directorio de caché TLS
+sudo mkdir -p /var/log/freeradius/tlscache
+sudo chown freerad:freerad /var/log/freeradius/tlscache
+sudo chmod 700 /var/log/freeradius/tlscache
+
+# Validar configuración
 sudo freeradius -CX
 # Resultado esperado: "Configuration appears to be OK"
 ```
@@ -447,6 +454,66 @@ El bloque `store {}` incluido dentro de `cache {}` en la Opción A es el mecanis
 
 > [!IMPORTANT]
 > **Sin `store {}`**, en una reconexión rápida el dispositivo entra a la red **sin VLAN asignada**, cayendo a la VLAN nativa del switch. Para verificar que funciona, comprobar que los paquetes `Access-Accept` de reconexión en el log de la Mothership incluyen los atributos `Tunnel-Type`, `Tunnel-Medium-Type` y `Tunnel-Private-Group-ID`.
+
+### 3.6 Verificar Session Tickets (Caché TLS)
+
+Después de que un dispositivo se conecta exitosamente, FreeRADIUS guarda un Session Ticket en disco. Para verificar:
+
+#### Ver archivos de caché
+
+```bash
+sudo ls -la /var/log/freeradius/tlscache/
+# Resultado esperado: archivos .asn1 y .vps por cada sesión
+```
+
+Ejemplo de salida:
+```
+-rw------- 1 freerad freerad  147 Mar  3 22:42 e485bf3f...c9b7647b.asn1
+-rw-r--r-- 1 freerad freerad  103 Mar  3 22:42 e485bf3f...c9b7647b.vps
+```
+
+| Archivo | Contenido | Formato |
+|---|---|---|
+| `.asn1` | Datos de sesión TLS (Session Ticket) | Binario |
+| `.vps` | Atributos RADIUS cacheados (EAP-Type, VLANs) | Texto |
+
+#### Inspeccionar el contenido del .vps
+
+```bash
+sudo cat /var/log/freeradius/tlscache/*.vps
+```
+
+Salida con PEAP (Opción B — pruebas):
+```ini
+# SSL cached session
+e485bf3f...c9b7647b
+        EAP-Type = PEAP
+```
+
+Salida con EAP-TLS (Opción A — producción):
+```ini
+# SSL cached session
+e485bf3f...c9b7647b
+        EAP-Type = TLS
+        &reply:Tunnel-Type = VLAN
+        &reply:Tunnel-Medium-Type = IEEE-802
+        &reply:Tunnel-Private-Group-ID = "100"
+```
+
+#### Verificar Session Resumption en modo debug
+
+```bash
+sudo freeradius -X 2>&1 | grep -i "session\|cache\|resume"
+```
+
+| Log | Significado |
+|---|---|
+| `Creating new session` | Primera conexión — handshake TLS completo |
+| `Resuming previous session` | Reconexión rápida — usando Session Ticket ✅ |
+| `Setting up attributes for session resumption` | Guardando atributos para próxima reconexión |
+
+> [!NOTE]
+> **Contar sesiones activas:** `ls -1 /var/log/freeradius/tlscache/*.asn1 2>/dev/null | wc -l` muestra cuántos dispositivos tienen Session Tickets activos.
 
 ---
 

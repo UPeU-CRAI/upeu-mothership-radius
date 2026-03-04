@@ -393,7 +393,87 @@ gantt
 | **VLAN Assignment:** Configurar `Tunnel-Type`, `Tunnel-Medium-Type`, `Tunnel-Private-Group-ID` según grupo de Entra | 🔴 Alta | [configuracion-radius.md](../02-mothership-aws/configuracion-radius.md) |
 | **Perfil Wi-Fi:** Completar Paso 3 en Intune para conexión automática | 🔴 Alta | [perfiles-intune.md](../04-identidad-y-pki/perfiles-intune.md) |
 | **Health Check:** Ya configurado `response_window`/`zombie_period` en proxy.conf | ✅ Hecho | [configuracion-proxy.md](../03-satellites-locales/configuracion-proxy.md) |
+| **AP UniFi + SSID WPA2-Enterprise** | ✅ Hecho | [configuracion-ap-unifi.md](../03-satellites-locales/configuracion-ap-unifi.md) |
+| **Session Tickets (TLS cache en disco)** | ✅ Hecho | [configuracion-radius.md — §3.6](../02-mothership-aws/configuracion-radius.md) |
 | **Más Satellites:** Juliaca y Tarapoto con misma configuración de proxy puro | 🟡 Media | [instalacion-ubuntu.md](../03-satellites-locales/instalacion-ubuntu.md) |
 | **LDAP/Entra ID:** Mapeo dinámico de grupo → VLAN sin hardcodear | 🟡 Media | [microsoft-entra-id.md](../04-identidad-y-pki/microsoft-entra-id.md) |
 | **Redis:** Caché centralizada para roaming entre Satellites | 🟢 Baja | [configuracion-radius.md](../02-mothership-aws/configuracion-radius.md) |
 | **eduroam (RadSec):** RADIUS sobre TLS para redes globales universitarias | 🟢 Baja | Nuevo documento necesario |
+
+---
+
+## Errores Descubiertos en Despliegue (Marzo 2026)
+
+### Error #8: `Tried to start unsupported EAP type MSCHAPv2 (26)`
+
+**Síntoma:**
+```
+Login incorrect (eap: Tried to start unsupported EAP type MSCHAPv2 (26))
+```
+
+**Causa raíz:** El archivo EAP tiene configurado PEAP con `default_eap_type = mschapv2`, pero faltan los sub-módulos `md5 {}` y `mschapv2 {}` dentro del bloque `eap {}`.
+
+**Solución:** Agregar los sub-módulos al archivo EAP **Y** habilitar el módulo mschap:
+
+```ini
+# Dentro de eap { ... }
+md5 {
+}
+
+mschapv2 {
+}
+```
+
+```bash
+sudo ln -sf /etc/freeradius/3.0/mods-available/mschap /etc/freeradius/3.0/mods-enabled/mschap
+sudo systemctl restart freeradius
+```
+
+---
+
+### Error #9: `BLASTRADIUS check: Received response to Access-Request with Message-Authenticator`
+
+**Síntoma:**
+```
+ERROR: BlastRADIUS check: Setting "require_message_authenticator = true" for home_server upeu-aws-mothership
+ERROR: Please set "require_message_authenticator = true" for home_server upeu-aws-mothership
+```
+
+**Causa raíz:** La Mothership incluye Message-Authenticator en sus respuestas (correcto), pero el Satellite no tiene configurado `require_message_authenticator = yes` en su `home_server`.
+
+**Solución:** En el Satellite, editar `proxy.conf`:
+
+```ini
+home_server upeu-aws-mothership {
+    # ... demás configuración ...
+    require_message_authenticator = yes    # ← agregar
+}
+```
+
+---
+
+### Error #10: `TLS Server requires a certificate file`
+
+**Síntoma:**
+```
+tls: TLS Server requires a certificate file
+rlm_eap_tls: Failed initializing SSL context
+rlm_eap (EAP): Failed to initialise rlm_eap_tls
+```
+
+**Causa raíz:** El archivo EAP por defecto de Ubuntu tiene ~1200 líneas. Al editarlo parcialmente, es fácil dejar directivas duplicadas o fuera de su bloque. FreeRADIUS no puede resolver las rutas del certificado correctamente.
+
+**Solución:** **NO editar el archivo por defecto**. Reescribirlo completo con la configuración mínima validada usando `sudo tee`:
+
+```bash
+sudo cp /etc/freeradius/3.0/mods-available/eap /etc/freeradius/3.0/mods-available/eap.bak
+sudo tee /etc/freeradius/3.0/mods-available/eap > /dev/null << 'ENDOFFILE'
+# ... configuración mínima validada ...
+ENDOFFILE
+```
+
+> [!TIP]
+> Usar `ENDOFFILE` en vez de `EOF` como delimitador del heredoc — algunos shells interpretan `EOF` de forma inesperada si aparece en el contenido.
+
+Ver la configuración completa validada en [configuracion-radius.md — §3.2](../02-mothership-aws/configuracion-radius.md).
+
