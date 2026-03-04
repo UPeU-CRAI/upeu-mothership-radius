@@ -1,8 +1,9 @@
 # Guía de Despliegue Automatizado
 
 > **Objetivo:** Desplegar Mothership y Satellites desde cero con un solo comando  
-> **Requisitos:** Ubuntu 24.04 LTS, acceso root, conexión a Internet  
-> **Tiempo estimado:** ~5 minutos por servidor
+> **Requisitos:** Ubuntu 22.04/24.04 LTS, acceso root, conexión a Internet  
+> **Tiempo estimado:** ~5 minutos por servidor  
+> **Probado:** FreeRADIUS 3.2.5 (marzo 2026)
 
 ---
 
@@ -36,120 +37,218 @@ flowchart TD
     style SAT fill:#047857,color:#fff
 ```
 
+### Flujo de autenticación
+
+```
+📱 Dispositivo → 📡 AP → 🛰️ Satellite → ☁️ Mothership AWS → ✅ Access-Accept → 🌐 Internet
+                  WiFi    192.168.x.x     UDP/1812              Valida usuario
+                  PEAP    secret AP↔SAT   secret SAT↔MOTH       EAP-PEAP/MSCHAPv2
+```
+
 ---
 
-## 1. Configurar Variables
+## 0. Preparar un Servidor Limpio (opcional)
+
+Si necesitas empezar de cero en un servidor que ya tenía FreeRADIUS:
+
+```bash
+sudo systemctl stop freeradius 2>/dev/null || true
+sudo apt-get purge -y freeradius freeradius-utils freeradius-common
+sudo apt-get autoremove -y
+sudo rm -rf /etc/freeradius /var/log/freeradius
+```
+
+---
+
+## 1. Clonar el Repositorio
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+cd /opt
+sudo git clone https://github.com/UPeU-CRAI/upeu-mothership-radius.git
+cd upeu-mothership-radius/deploy
+```
+
+---
+
+## 2. Configurar Variables
 
 El sistema utiliza una jerarquía de archivos para facilitar la gestión de múltiples sedes:
 
-```bash
+```
 deploy/
-├── global.env          # Configuración compartida (TLS, Timeouts)
+├── global.env              # Configuración compartida (TLS, Timeouts)
 ├── mothership/
-│   └── .env            # Configuración de la Mothership + Satellites registrados
+│   ├── .env.example        # Template documentado
+│   ├── .env                # 🔒 Valores reales (no en Git)
+│   └── templates/          # Templates de FreeRADIUS
 └── satellite/
-    └── instances/      # Una configuración por sede (lima.env, juliaca.env, etc.)
-        └── lima.env
+    ├── .env.example        # Template documentado
+    ├── instances/          # 🔒 Una config por sede (no en Git)
+    │   └── lima.env
+    └── templates/          # Templates de FreeRADIUS
 ```
 
-### 1.1 Configuración Global
-Revisar `deploy/global.env` para ajustes generales de seguridad TLS y parámetros de caché. No suele ser necesario modificarlo entre sedes.
+> **Importante:** Los archivos `.env` contienen secretos y están en `.gitignore`. NUNCA se suben a Git. Cada vez que clonas el repo en un servidor nuevo, debes crear el `.env` manualmente.
 
-### 1.2 Configuración de la Mothership
+### 2.1 Configuración Global
+
+Revisar `deploy/global.env` para ajustes generales de seguridad TLS y parámetros de proxy. Raramente necesita cambios entre sedes.
+
+### 2.2 Configuración de la Mothership
+
 ```bash
 cd deploy/mothership
 cp .env.example .env
 nano .env
 ```
+
 Para registrar Satellites, usa el formato correlativo:
+
 ```ini
 SAT_1_NAME=SAT-LIMA-01
+SAT_1_SHORTNAME=SAT-LIMA-01
 SAT_1_PUBLIC_IP=190.239.28.70
-SAT_1_SECRET=...
+SAT_1_SECRET=<GENERAR_CON_dd_if_dev_random>
 
 SAT_2_NAME=SAT-JULIACA-01
-SAT_2_PUBLIC_IP=...
-SAT_2_SECRET=...
+SAT_2_SHORTNAME=SAT-JULIACA-01
+SAT_2_PUBLIC_IP=<IP_PUBLICA_JULIACA>
+SAT_2_SECRET=<GENERAR_CON_dd_if_dev_random>
 ```
 
-### 1.3 Configuración de Satellites (Sedes)
+### 2.3 Configuración de Satellites (Sedes)
+
 ```bash
 cd deploy/satellite
 # Crear instancia para una nueva sede
-cp .env.example instances/juliaca.env
-nano instances/juliaca.env
+cp .env.example instances/lima.env
+nano instances/lima.env
 ```
+
+> [!TIP]
+> Generar secretos robustos: `dd if=/dev/random bs=1 count=24 2>/dev/null | base64`
 
 ---
 
-## 2. Desplegar la Mothership
+## 3. Desplegar la Mothership (⚠️ SIEMPRE PRIMERO)
 
-El script de la Mothership lee el `global.env` y su propio `.env` para reconstruir la configuración completa.
+> [!WARNING]
+> La Mothership debe estar operativa antes de desplegar Satellites, ya que estos validan la conexión al arrancar.
 
 ```bash
-# En el servidor Mothership
+cd /opt/upeu-mothership-radius/deploy
 sudo bash mothership/deploy.sh
 ```
 
 ### Qué hace el script
+
 | Paso | Acción |
 |---|---|
 | 1 | Carga `global.env` y `mothership/.env` |
-| 2 | Genera certificados y parámetros DH si no existen |
-| 3 | **Dinámico:** Genera bloques de clientes en `clients.conf` para cada Satellite definido (`SAT_N_*`) |
-| 4 | Valida con `freeradius -CX` y reinicia |
+| 2 | Instala FreeRADIUS si no existe |
+| 3 | Genera certificados temporales y parámetros DH |
+| 4 | Configura EAP (mods-available/eap) |
+| 5 | **Dinámico:** Genera bloques de clientes en `clients.conf` para cada `SAT_N_*` |
+| 6 | Configura usuarios en `mods-config/files/authorize` |
+| 7 | Valida con `freeradius -CX` y reinicia |
 
----
-
-## 3. Desplegar un Satellite (Sede)
-
-El script del Satellite requiere el nombre de la instancia (archivo en `instances/`) como argumento.
+### Verificar
 
 ```bash
-# En el servidor de la sede (ej: Juliaca)
-# El nombre debe coincidir con el archivo instances/juliaca.env
-sudo bash satellite/deploy.sh juliaca
-```
-
-### Qué hace el script
-| Paso | Acción |
-|---|---|
-| 1 | Carga `global.env` y `satellite/instances/[nombre].env` |
-| 2 | Configura `proxy.conf` para apuntar a la Mothership |
-| 3 | Configura `clients.conf` con los APs de la sede |
-| 4 | Valida y reinicia |
-
----
-
-## 4. Verificar el Despliegue
-
-### Desde el Satellite
-```bash
-# Test local (hacia el propio FreeRADIUS que reenvía a AWS)
+# Test local
 radtest test1 2026 127.0.0.1 0 testing123
 # Esperado: Access-Accept
 ```
 
-### Desde un dispositivo
-1. Conectar a la red WiFi `UPeU-Secure` (o el SSID configurado en el AP)
-2. Usuario: `test1` / Contraseña: `2026`
+### Firewall AWS (Security Group)
+
+Antes de desplegar Satellites, verificar que el Security Group de la EC2 tiene estas reglas Inbound:
+
+| Puerto | Protocolo | Origen | Descripción |
+|---|---|---|---|
+| 1812 | UDP | `<IP_PUBLICA_SATELLITE>/32` | RADIUS Auth |
+| 1813 | UDP | `<IP_PUBLICA_SATELLITE>/32` | RADIUS Acct |
+
+> [!CAUTION]
+> **NO** abrir puertos 1812/1813 a `0.0.0.0/0`. Restringir siempre a las IPs públicas de los Satellites.
 
 ---
 
-## 5. Agregar una Nueva Sede
+## 4. Desplegar un Satellite (Sede)
+
+El script del Satellite requiere el nombre de la instancia como argumento:
+
+```bash
+cd /opt/upeu-mothership-radius/deploy
+# El nombre debe coincidir con instances/<nombre>.env
+sudo bash satellite/deploy.sh lima
+```
+
+### Qué hace el script
+
+| Paso | Acción |
+|---|---|
+| 1 | Carga `global.env` y `satellite/instances/[nombre].env` |
+| 2 | Instala FreeRADIUS si no existe |
+| 3 | Configura `proxy.conf` para apuntar a la Mothership |
+| 4 | Configura `clients.conf` con la subred de APs de la sede |
+| 5 | Valida con `freeradius -CX` y reinicia |
+
+---
+
+## 5. Verificar el Despliegue
+
+### Desde el Satellite
+
+```bash
+# Test del túnel completo (local → proxy → Mothership → respuesta)
+radtest test1 2026 127.0.0.1 0 testing123
+# Esperado: Access-Accept
+```
+
+### Verificar proxy activo
+
+```bash
+# Debe mostrar "Marking home server ... alive"
+sudo tail -f /var/log/freeradius/radius.log
+```
+
+### Desde un dispositivo real
+
+1. Configurar un AP con WPA2-Enterprise:
+   - **RADIUS Server:** IP local del Satellite
+   - **Puerto:** 1812
+   - **Secret:** El valor de `SECRET_AP_SATELLITE` del `.env`
+2. Conectar un dispositivo a la red WiFi
+3. Credenciales: usuario y contraseña definidos en el `.env` de la Mothership
+4. Aceptar el certificado (autofirmado en modo `temp`)
+
+### Monitorear en tiempo real
+
+```bash
+# En el Satellite — ver requests del AP
+sudo tcpdump -i any udp port 1812 -n
+
+# En ambos servidores — ver logs de autenticación
+sudo tail -f /var/log/freeradius/radius.log
+```
+
+---
+
+## 6. Agregar una Nueva Sede
 
 1. **En la Mothership:**
-   - Editar `deploy/mothership/.env` y agregar `SAT_N_*` (ej: SAT_2_NAME, etc.)
-   - Ejecutar `sudo bash mothership/deploy.sh` para autorizar la IP de la nueva sede.
+   - Editar `deploy/mothership/.env` y agregar `SAT_N_*` (ej: `SAT_2_NAME`, etc.)
+   - Ejecutar `sudo bash mothership/deploy.sh` para registrar la IP de la nueva sede
 
-2. **Para el Satellite:**
-   - Crear `deploy/satellite/instances/sede.env` con la IP local y secretos.
-   - Copiar carpeta `deploy/` al nuevo servidor.
-   - Ejecutar `sudo bash satellite/deploy.sh sede`.
+2. **En el nuevo Satellite:**
+   - Clonar el repo: `cd /opt && sudo git clone ...`
+   - Crear `deploy/satellite/instances/sede.env` con los datos de la sede
+   - Ejecutar `sudo bash satellite/deploy.sh sede`
 
-> [!TIP]
-> Use `dd if=/dev/random bs=1 count=24 2>/dev/null | base64` para generar secretos robustos entre servers.
-
+3. **En AWS:**
+   - Agregar la IP pública de la nueva sede al Security Group (puertos 1812/1813 UDP)
 
 ---
 
@@ -157,18 +256,52 @@ radtest test1 2026 127.0.0.1 0 testing123
 
 ### Archivos generados por el deploy
 
-| Template | Destino | Variables usadas |
+| Template | Destino en FreeRADIUS | Variables usadas |
 |---|---|---|
-| `mothership/templates/eap.conf` | `/etc/freeradius/3.0/mods-available/eap` | `EAP_DEFAULT_TYPE`, `CERT_*`, `TLS_*` |
-| `mothership/templates/clients.conf` | `/etc/freeradius/3.0/clients.conf` | `SAT_NAME`, `SAT_PUBLIC_IP`, `SECRET_SATELLITE_MOTHERSHIP` |
-| `mothership/templates/users` | `/etc/freeradius/3.0/users` | `TEST_USER`, `TEST_PASSWORD` |
-| `satellite/templates/proxy.conf` | `/etc/freeradius/3.0/proxy.conf` | `MOTHERSHIP_IP`, `SECRET_SATELLITE_MOTHERSHIP`, `PROXY_*` |
-| `satellite/templates/clients.conf` | `/etc/freeradius/3.0/clients.conf` | `AP_SUBNET`, `AP_SHORTNAME`, `SECRET_AP_SATELLITE` |
+| `mothership/templates/eap.conf` | `mods-available/eap` | `EAP_DEFAULT_TYPE`, `CERT_*`, `TLS_*` |
+| `mothership/templates/clients.conf` | `clients.conf` | `SAT_N_NAME`, `SAT_N_PUBLIC_IP`, `SAT_N_SECRET` |
+| `mothership/templates/users` | `mods-config/files/authorize` | `TEST_USER`, `TEST_PASSWORD` |
+| `satellite/templates/proxy.conf` | `proxy.conf` | `MOTHERSHIP_IP`, `SECRET_SATELLITE_MOTHERSHIP`, `PROXY_*` |
+| `satellite/templates/clients.conf` | `clients.conf` | `AP_SUBNET`, `AP_SHORTNAME`, `SECRET_AP_SATELLITE` |
+
+> [!IMPORTANT]
+> FreeRADIUS 3.x lee usuarios de `mods-config/files/authorize`, **NO** del legacy `/etc/freeradius/3.0/users`.
 
 ### Convención de placeholders
 
-Los templates usan `%%VARIABLE%%` como placeholders (doble porcentaje) para evitar conflictos con la sintaxis `${...}` de FreeRADIUS.
+Los templates usan `%%VARIABLE%%` (doble porcentaje) para evitar conflictos con la sintaxis `${...}` de FreeRADIUS.
 
 ---
 
-→ **Siguiente paso:** Para CI/CD automatizado con GitHub Actions, ver la futura guía en `.github/workflows/`.
+## Troubleshooting
+
+### Modo debug (muestra todo el procesamiento)
+
+```bash
+sudo systemctl stop freeradius
+sudo freeradius -X
+# En otra terminal:
+radtest test1 2026 127.0.0.1 0 testing123
+```
+
+### Errores comunes
+
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| `Access-Reject` local en Mothership | Usuarios en ruta incorrecta | Verificar que `mods-config/files/authorize` tiene el usuario |
+| `[files] = noop` en debug | Archivo de usuarios vacío o en ruta legacy | Re-ejecutar `mothership/deploy.sh` |
+| `No reply from server` (timeout) | Firewall/SG bloqueando UDP 1812 | Verificar Security Group de AWS |
+| `Parse error "?[0"` en clients.conf | Códigos ANSI en el archivo generado | Actualizar deploy.sh (bug corregido) |
+| Servicio no inicia después de debug | Instancia `-X` sigue corriendo | `sudo pkill -9 freeradius && sudo systemctl restart freeradius` |
+| BlastRADIUS warnings en logs | Informativo, no afecta funcionamiento | Agregar `require_message_authenticator = yes` en client localhost |
+
+### Verificar configuración sin reiniciar
+
+```bash
+sudo freeradius -CX
+# Debe decir: "Configuration appears to be OK"
+```
+
+---
+
+→ **Siguiente paso:** Integración con Microsoft Intune y Azure Cloud PKI para autenticación con certificados de dispositivo.
