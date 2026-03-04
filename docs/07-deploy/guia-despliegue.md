@@ -40,181 +40,116 @@ flowchart TD
 
 ## 1. Configurar Variables
 
+El sistema utiliza una jerarquía de archivos para facilitar la gestión de múltiples sedes:
+
 ```bash
-cd deploy/
+deploy/
+├── global.env          # Configuración compartida (TLS, Timeouts)
+├── mothership/
+│   └── .env            # Configuración de la Mothership + Satellites registrados
+└── satellite/
+    └── instances/      # Una configuración por sede (lima.env, juliaca.env, etc.)
+        └── lima.env
+```
+
+### 1.1 Configuración Global
+Revisar `deploy/global.env` para ajustes generales de seguridad TLS y parámetros de caché. No suele ser necesario modificarlo entre sedes.
+
+### 1.2 Configuración de la Mothership
+```bash
+cd deploy/mothership
 cp .env.example .env
 nano .env
 ```
+Para registrar Satellites, usa el formato correlativo:
+```ini
+SAT_1_NAME=SAT-LIMA-01
+SAT_1_PUBLIC_IP=190.239.28.70
+SAT_1_SECRET=...
 
-### Variables principales
+SAT_2_NAME=SAT-JULIACA-01
+SAT_2_PUBLIC_IP=...
+SAT_2_SECRET=...
+```
 
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `MOTHERSHIP_IP` | Elastic IP de la Mothership en AWS | `54.166.108.154` |
-| `CERT_MODE` | `temp` (autofirmados) o `production` (Azure Cloud PKI) | `temp` |
-| `EAP_DEFAULT_TYPE` | `peap` (usuario/contraseña) o `tls` (certificados) | `peap` |
-| `SAT_PUBLIC_IP` | IP pública del Satellite (como la ve la Mothership) | `190.239.28.70` |
-| `SAT_LOCAL_IP` | IP local del Satellite en el campus | `192.168.62.82` |
-| `SECRET_SATELLITE_MOTHERSHIP` | Secreto Satellite ↔ Mothership | *(generado)* |
-| `SECRET_AP_SATELLITE` | Secreto APs ↔ Satellite | *(generado)* |
-| `AP_SUBNET` | Subred de los Access Points | `192.168.62.0/24` |
-
-> [!CAUTION]
-> **El archivo `.env` contiene secretos.** Está en `.gitignore` y NUNCA debe subirse a Git.
-
-### Generar secretos seguros
-
+### 1.3 Configuración de Satellites (Sedes)
 ```bash
-# Generar un secreto aleatorio de 32 caracteres
-dd if=/dev/random bs=1 count=24 2>/dev/null | base64
+cd deploy/satellite
+# Crear instancia para una nueva sede
+cp .env.example instances/juliaca.env
+nano instances/juliaca.env
 ```
 
 ---
 
 ## 2. Desplegar la Mothership
 
-```bash
-# Opción A: Directamente en el servidor AWS
-git clone https://github.com/UPeU-CRAI/upeu-mothership-radius.git
-cd upeu-mothership-radius/deploy
-cp .env.example .env
-nano .env                           # ← completar valores
-sudo bash mothership/deploy.sh
-```
+El script de la Mothership lee el `global.env` y su propio `.env` para reconstruir la configuración completa.
 
 ```bash
-# Opción B: Desde tu máquina local via SCP
-scp -r deploy/ ubuntu@54.166.108.154:/tmp/deploy/
-ssh ubuntu@54.166.108.154
-cd /tmp/deploy
-cp .env.example .env
-nano .env
+# En el servidor Mothership
 sudo bash mothership/deploy.sh
 ```
 
 ### Qué hace el script
-
 | Paso | Acción |
 |---|---|
-| 1 | Valida que todas las variables estén definidas |
-| 2 | Instala FreeRADIUS si no existe |
-| 3 | Genera certificados temporales o verifica los de producción |
-| 4 | Genera parámetros Diffie-Hellman (si no existen) |
-| 5 | Crea directorio de caché TLS |
-| 6 | Respalda la configuración actual |
-| 7 | Aplica templates (reemplaza `%%VARIABLES%%` con valores del `.env`) |
-| 8 | Habilita módulo mschap |
-| 9 | Valida con `freeradius -CX` |
-| 10 | Reinicia el servicio |
-
-### Salida esperada
-
-```
-[✓] Variables cargadas desde .env
-[✓] Variables validadas
-[✓] FreeRADIUS ya instalado
-[✓] Modo: certificados TEMPORALES (autofirmados)
-[✓] Parámetros DH ya existen
-[✓] Directorio de caché TLS listo
-[✓] Respaldo guardado en /etc/freeradius/3.0/backup-20260304-073500
-[✓] EAP configurado (modo: temp, tipo: peap)
-[✓] Clients configurado (satellite: SAT-LIMA-01 @ 190.239.28.70)
-[✓] Users configurado (test: test1)
-[✓] Módulo mschap habilitado
-[✓] Configuración validada ✅
-[✓] FreeRADIUS reiniciado y habilitado
-
-============================================================================
- MOTHERSHIP desplegada exitosamente
-============================================================================
-```
+| 1 | Carga `global.env` y `mothership/.env` |
+| 2 | Genera certificados y parámetros DH si no existen |
+| 3 | **Dinámico:** Genera bloques de clientes en `clients.conf` para cada Satellite definido (`SAT_N_*`) |
+| 4 | Valida con `freeradius -CX` y reinicia |
 
 ---
 
-## 3. Desplegar un Satellite
+## 3. Desplegar un Satellite (Sede)
+
+El script del Satellite requiere el nombre de la instancia (archivo en `instances/`) como argumento.
 
 ```bash
-# Copiar el directorio deploy al Satellite
-scp -r deploy/ freeradius@192.168.62.82:/tmp/deploy/
-ssh freeradius@192.168.62.82
-cd /tmp/deploy
-cp .env.example .env
-nano .env                           # ← completar valores
-sudo bash satellite/deploy.sh
+# En el servidor de la sede (ej: Juliaca)
+# El nombre debe coincidir con el archivo instances/juliaca.env
+sudo bash satellite/deploy.sh juliaca
 ```
 
-### Salida esperada
-
-```
-[✓] Variables cargadas desde .env
-[✓] Variables validadas
-[✓] FreeRADIUS ya instalado
-[✓] Respaldo guardado en /etc/freeradius/3.0/backup-20260304-074000
-[✓] Proxy configurado (mothership: 54.166.108.154)
-[✓] Clients configurado (APs: 192.168.62.0/24)
-[✓] Configuración validada ✅
-[✓] FreeRADIUS reiniciado y habilitado
-
-============================================================================
- SATELLITE desplegado exitosamente
-============================================================================
-```
+### Qué hace el script
+| Paso | Acción |
+|---|---|
+| 1 | Carga `global.env` y `satellite/instances/[nombre].env` |
+| 2 | Configura `proxy.conf` para apuntar a la Mothership |
+| 3 | Configura `clients.conf` con los APs de la sede |
+| 4 | Valida y reinicia |
 
 ---
 
 ## 4. Verificar el Despliegue
 
 ### Desde el Satellite
-
 ```bash
-# Test del tunnel Satellite → Mothership
+# Test local (hacia el propio FreeRADIUS que reenvía a AWS)
 radtest test1 2026 127.0.0.1 0 testing123
 # Esperado: Access-Accept
 ```
 
 ### Desde un dispositivo
-
-1. Conectar a la red WiFi `UPeU-Secure`
+1. Conectar a la red WiFi `UPeU-Secure` (o el SSID configurado en el AP)
 2. Usuario: `test1` / Contraseña: `2026`
-3. Aceptar certificado del servidor
 
 ---
 
 ## 5. Agregar una Nueva Sede
 
-Para desplegar un Satellite en otra sede (ej: Juliaca):
+1. **En la Mothership:**
+   - Editar `deploy/mothership/.env` y agregar `SAT_N_*` (ej: SAT_2_NAME, etc.)
+   - Ejecutar `sudo bash mothership/deploy.sh` para autorizar la IP de la nueva sede.
 
-```bash
-# 1. Copiar .env y cambiar las variables de la sede
-cp .env .env.juliaca
-nano .env.juliaca
-```
+2. **Para el Satellite:**
+   - Crear `deploy/satellite/instances/sede.env` con la IP local y secretos.
+   - Copiar carpeta `deploy/` al nuevo servidor.
+   - Ejecutar `sudo bash satellite/deploy.sh sede`.
 
-Cambiar:
+> [!TIP]
+> Use `dd if=/dev/random bs=1 count=24 2>/dev/null | base64` para generar secretos robustos entre servers.
 
-```ini
-SAT_NAME=SAT-JULIACA-01
-SAT_SHORTNAME=SAT-JULIACA-01
-SAT_PUBLIC_IP=<IP_PUBLICA_JULIACA>
-SAT_LOCAL_IP=<IP_LOCAL_JULIACA>
-AP_SUBNET=<SUBRED_APS_JULIACA>
-AP_SHORTNAME=CAMPUS-JULIACA-APS
-```
-
-```bash
-# 2. Copiar al nuevo servidor y desplegar
-scp -r deploy/ usuario@<IP_JULIACA>:/tmp/deploy/
-ssh usuario@<IP_JULIACA>
-cd /tmp/deploy
-cp .env.juliaca .env
-sudo bash satellite/deploy.sh
-
-# 3. En la Mothership: agregar el nuevo Satellite como cliente
-# (Agregar otra entrada client en clients.conf de la Mothership)
-```
-
-> [!IMPORTANT]
-> Cada nuevo Satellite requiere también ser registrado como cliente en la Mothership. En el futuro, el deploy de Mothership podría soportar múltiples Satellites desde el `.env`.
 
 ---
 
