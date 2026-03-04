@@ -1,0 +1,43 @@
+# ============================================================================
+#  Prometheus — Configuración de scraping
+#  Monitorea: Satellite (local) + Mothership (AWS)
+# ============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+# --- Reglas de alertas ------------------------------------------------------
+rule_files:
+  - "alerts.yml"
+
+# --- Targets para scraping -------------------------------------------------
+scrape_configs:
+
+  # Prometheus se monitorea a sí mismo
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          instance: "monitoring"
+
+  # --- Satellite Lima (local) -----------------------------------------------
+  - job_name: "satellite-lima-system"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          server: "satellite"
+          sede: "lima"
+          role: "satellite"
+
+  # --- Mothership AWS (remoto) ----------------------------------------------
+  # NOTA: Requiere node_exporter instalado en la Mothership
+  #       y puerto 9100 abierto en el Security Group desde la IP del Satellite
+  - job_name: "mothership-aws-system"
+    static_configs:
+      - targets: ["54.166.108.154:9100"]
+        labels:
+          server: "mothership"
+          sede: "aws"
+          role: "mothership"

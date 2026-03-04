@@ -1,0 +1,71 @@
+# ============================================================================
+#  Alertas de Prometheus para infraestructura RADIUS
+# ============================================================================
+
+groups:
+  - name: radius_infrastructure
+    rules:
+
+      # --- Disponibilidad ---------------------------------------------------
+
+      - alert: ServerDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Servidor {{ $labels.server }} no responde"
+          description: "El target {{ $labels.instance }} lleva más de 2 minutos sin responder."
+
+      # --- CPU --------------------------------------------------------------
+
+      - alert: HighCPU
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU alta en {{ $labels.server }} ({{ $value | printf \"%.1f\" }}%)"
+          description: "El uso de CPU ha estado por encima del 85% durante 5 minutos."
+
+      # --- Memoria ----------------------------------------------------------
+
+      - alert: HighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memoria alta en {{ $labels.server }} ({{ $value | printf \"%.1f\" }}%)"
+          description: "El uso de memoria ha estado por encima del 90% durante 5 minutos."
+
+      # --- Disco ------------------------------------------------------------
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disco lleno en {{ $labels.server }} ({{ $value | printf \"%.1f\" }}%)"
+          description: "El uso de disco en / ha superado el 85%."
+
+      - alert: DiskSpaceCritical
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "⚠️ Disco CRÍTICO en {{ $labels.server }} ({{ $value | printf \"%.1f\" }}%)"
+          description: "El uso de disco en / ha superado el 95%. Acción inmediata requerida."
+
+      # --- Red --------------------------------------------------------------
+
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total{device!~"lo|docker.*|br-.*|veth.*"}[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tráfico de red alto en {{ $labels.server }}"
+          description: "Se están recibiendo más de 100MB/s sostenidos."
