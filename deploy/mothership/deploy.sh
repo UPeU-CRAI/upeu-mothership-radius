@@ -131,10 +131,9 @@ generate_satellite_clients() {
         clients+="# Satellite: $name
 client $shortname {
     ipaddr    = $ip
-    secret    = $secret
+    secret    = '$secret'
     shortname = $shortname
     require_message_authenticator = yes
-    limit_proxy_state = yes
 }
 
 "
