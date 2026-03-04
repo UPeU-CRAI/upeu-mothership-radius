@@ -92,6 +92,42 @@ apply_template() {
     sed -i "s|%%PROXY_REVIVE_INTERVAL%%|$PROXY_REVIVE_INTERVAL|g" "$dst"
     sed -i "s|%%PROXY_RESPONSE_TIMEOUTS%%|${PROXY_RESPONSE_TIMEOUTS:-3}|g" "$dst"
 
+    # --- Lógica de Backup Server ---
+    local backup_ip="${MOTHERSHIP_BACKUP_IP:-}"
+    local backup_secret="${MOTHERSHIP_BACKUP_SECRET:-$SECRET_SATELLITE_MOTHERSHIP}"
+    
+    if [[ -n "$backup_ip" ]]; then
+        sed -i "s|%%BACKUP_SERVER_REF%%|home_server = upeu-aws-mothership-backup|g" "$dst"
+        
+        local backup_block="
+home_server upeu-aws-mothership-backup {
+    type = auth+acct
+    ipaddr = $backup_ip
+    port = 1812
+    secret = '$backup_secret'
+    require_message_authenticator = yes
+    response_window = $PROXY_RESPONSE_WINDOW
+    zombie_period = $PROXY_ZOMBIE_PERIOD
+    revive_interval = $PROXY_REVIVE_INTERVAL
+    status_check = status-server
+    check_interval = 30
+    check_timeout = 3
+    num_answers_to_alive = 3
+    max_outstanding = 65536
+    coa { irt = 2; mrt = 16; mrc = 5; mrd = 30 }
+    limit { max_connections = 16; max_requests = 0; lifetime = 0; idle_timeout = 0 }
+}"
+        # Inyectar el bloque de backup (usando un archivo temporal para escapar caracteres)
+        local tmpblock=$(mktemp)
+        echo "$backup_block" > "$tmpblock"
+        sed -i "/%%BACKUP_SERVER_BLOCK%%/r $tmpblock" "$dst"
+        rm -f "$tmpblock"
+    fi
+    
+    # Limpiar placeholders si no hay backup
+    sed -i "s|%%BACKUP_SERVER_REF%%||g" "$dst"
+    sed -i "/%%BACKUP_SERVER_BLOCK%%/d" "$dst"
+
     chown freerad:freerad "$dst"
 }
 
