@@ -1,14 +1,3 @@
-# Prompt: Despliegue de EJBCA Community Edition en AWS con Docker
-
-Copia y pega este prompt completo en otra sesión de Claude para que tenga todo el contexto necesario.
-
----
-
-## PROMPT INICIO
-
-Eres un ingeniero senior de infraestructura y seguridad de redes. Necesito que me guíes paso a paso en el despliegue completo de EJBCA Community Edition en AWS usando Docker. A continuación te doy todo el contexto de mi proyecto, los archivos de configuración ya preparados, y los pasos que necesito que me guíes.
-
----
 
 ### CONTEXTO DEL PROYECTO
 
