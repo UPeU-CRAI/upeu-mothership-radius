@@ -10,7 +10,7 @@
 **Escala objetivo:**
 - ~15,000 usuarios, cada uno con 2-3 dispositivos (30,000 - 45,000 certificados potenciales)
 - Arranque en fase piloto con 50 dispositivos de prueba
-- Crecimiento progresivo: 50 → 2,000 → 5,000 → escala completa
+- Crecimiento progresivo: 50 → 5,000 → 45,000 → escala completa
 
 ---
 
