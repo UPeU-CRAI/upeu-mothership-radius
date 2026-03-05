@@ -1,6 +1,27 @@
+# =============================================================================
+# Docker Compose — EJBCA Community Edition + PostgreSQL + Nginx
+# UPeU CRAI — PKI para FreeRADIUS 802.1X + Intune SCEP
+# Región: us-east-1 (Virginia) | Instancia: t3.medium (Fase 1 - Piloto)
+# =============================================================================
+#
+# USO:
+#   1. Copiar el archivo .env.example a .env y configurar las variables
+#   2. Crear directorios: mkdir -p ./nginx/conf.d ./nginx/webroot
+#   3. Levantar:  docker compose up -d
+#   4. Ver logs:  docker compose logs -f
+#   5. Detener:   docker compose down
+#
+# IMPORTANTE:
+#   - Cambiar TODAS las contraseñas en el archivo .env antes de usar
+#   - El certificado Let's Encrypt se obtiene DESPUÉS del primer arranque
+#   - La UI Admin (8443) NO se expone a internet, solo acceso local/VPN
+# =============================================================================
+
 networks:
+  # Red interna entre EJBCA y PostgreSQL (no expuesta)
   backend:
     driver: bridge
+  # Red entre EJBCA y Nginx (proxy)
   frontend:
     driver: bridge
 
@@ -12,6 +33,12 @@ volumes:
 
 services:
 
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Base de datos persistente para EJBCA
+  # ---------------------------------------------------------------------------
+  # EJBCA por defecto usa H2 (embebida), pero para producción se recomienda
+  # PostgreSQL porque H2 puede corromperse en reinicios abruptos y no escala.
+  # ---------------------------------------------------------------------------
   ejbca-database:
     container_name: ejbca-database
     image: postgres:16-alpine
@@ -23,14 +50,21 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
+      # Datos persistentes de PostgreSQL — sobreviven a recreación del contenedor
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
 
+  # ---------------------------------------------------------------------------
+  # EJBCA Community Edition — Autoridad Certificadora
+  # ---------------------------------------------------------------------------
+  # Imagen oficial de Keyfactor desde Docker Hub
+  # Docs: https://hub.docker.com/r/keyfactor/ejbca-ce
+  # ---------------------------------------------------------------------------
   ejbca-node1:
     hostname: ${EJBCA_HOSTNAME}
     container_name: ejbca
@@ -43,18 +77,36 @@ services:
       - backend
       - frontend
     environment:
+      # --- Conexión a PostgreSQL ---
       - DATABASE_JDBC_URL=jdbc:postgresql://ejbca-database:5432/${DB_NAME}
       - DATABASE_USER=${DB_USER}
       - DATABASE_PASSWORD=${DB_PASSWORD}
+
+      # --- Logging ---
       - LOG_LEVEL_APP=INFO
       - LOG_LEVEL_SERVER=INFO
+
+      # --- TLS Setup ---
+      # "simple" = acceso sin certificado cliente (para setup inicial)
+      # Después de crear el SuperAdmin, cambiar a "true" y reiniciar
       - TLS_SETUP_ENABLED=${TLS_SETUP_MODE:-simple}
+
     ports:
+      # Solo exponer en localhost — Nginx hace de proxy al exterior
+      # 8080: HTTP (SCEP, CRL, OCSP) — Nginx proxy_pass a este puerto
       - "127.0.0.1:8080:8080"
+      # 8443: Admin UI (HTTPS con cert cliente) — acceso solo local/VPN
       - "127.0.0.1:8443:8443"
     volumes:
+      # Persistir datos de EJBCA (plugins, configuraciones custom)
       - ejbca-data:/opt/keyfactor/appserver/standalone/data
 
+  # ---------------------------------------------------------------------------
+  # Nginx — Reverse Proxy + TLS Termination (Let's Encrypt)
+  # ---------------------------------------------------------------------------
+  # Nginx recibe HTTPS desde internet y reenvía a EJBCA por HTTP interno.
+  # Let's Encrypt se configura con Certbot DESPUÉS del primer arranque.
+  # ---------------------------------------------------------------------------
   nginx:
     container_name: nginx-proxy
     image: nginx:alpine
@@ -64,10 +116,15 @@ services:
     networks:
       - frontend
     ports:
+      # Puerto 80: necesario para el challenge de Let's Encrypt
       - "0.0.0.0:80:80"
+      # Puerto 443: HTTPS — endpoint SCEP accesible desde internet
       - "0.0.0.0:443:443"
     volumes:
+      # Configuración de Nginx
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Certificados Let's Encrypt (montados por Certbot en el host)
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Challenge directory para Certbot
       - ./nginx/webroot:/var/www/certbot:ro
