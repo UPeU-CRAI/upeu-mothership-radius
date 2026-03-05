@@ -1406,61 +1406,22 @@
             <h2 class="section-title">Estimación de Inversión y Costos</h2>
             <p>A continuación se detalla el análisis de costos del proyecto, considerando que la UPeU cuenta actualmente
                 con licenciamiento <strong>Microsoft 365 A3 y A5 para Educación</strong>. Estas licencias incluyen
-                <strong>Intune Plan 1</strong> (gestión de dispositivos, perfiles Wi-Fi, perfiles de certificado SCEP),
-                pero <strong>no incluyen Microsoft Cloud PKI</strong>, que es un componente clave para este proyecto.
+                <strong>Intune Plan 1</strong> (imprescindible para la emisión de certificados vía SCEP y configuración
+                de perfiles Wi-Fi).
             </p>
 
-            <div class="callout">
-                <p><strong>Nota sobre licenciamiento:</strong> Microsoft anunció en diciembre 2025 que Cloud PKI se
-                    incluirá en Microsoft 365 E5 a partir de julio 2026. Sin embargo, este cambio aplica a licencias
-                    <strong>Enterprise (E3/E5)</strong>, no a licencias <strong>Education (A3/A5)</strong> de forma
-                    confirmada. Se recomienda monitorear las actualizaciones de Microsoft para el segmento educativo.
-                    Mientras tanto, Cloud PKI debe adquirirse como add-on.
-                </p>
+            <div class="callout warning">
+                <p><strong>Decisión Estratégica sobre PKI:</strong> Inicialmente se consideró el uso de
+                    <strong>Microsoft Cloud PKI</strong>, pero fue descartado debido a su elevado costo recurrente como
+                    add-on (estimado entre $12,000 y $48,000+ anuales según el volumen de dispositivos). En su lugar, se
+                    implementará <strong>EJBCA Community Edition</strong> alojado en AWS. Esta alternativa de código
+                    abierto proporciona grado empresarial y soporte SCEP nativo sin costos de licenciamiento, reduciendo
+                    el gasto exclusivamente al consumo de infraestructura.</p>
             </div>
 
-            <h3>Licenciamiento Microsoft — Costos Adicionales</h3>
-            <table class="tech-table">
-                <tr>
-                    <th>Concepto</th>
-                    <th>Modalidad</th>
-                    <th>Costo Unitario</th>
-                    <th>Estimación Anual</th>
-                </tr>
-                <tr>
-                    <td><strong>Microsoft 365 A3/A5 (Intune Plan 1)</strong></td>
-                    <td>Ya adquirido</td>
-                    <td colspan="2" style="text-align:center; color: #16a34a; font-weight:600;">Incluido en
-                        licenciamiento actual</td>
-                </tr>
-                <tr>
-                    <td><strong>Microsoft Cloud PKI</strong><br><span style="font-size:12px;color:#64748b;">Add-on para
-                            Intune Plan 1</span></td>
-                    <td>Por usuario / mes</td>
-                    <td>USD $2.00 / usuario / mes</td>
-                    <td>Depende del Nº de usuarios*</td>
-                </tr>
-                <tr>
-                    <td colspan="4" style="font-size:12px; color:#64748b; padding:8px 18px;">
-                        <strong>*Escenarios de ejemplo:</strong><br>
-                        &nbsp;&nbsp;• 500 usuarios → USD $1,000/mes → <strong>USD $12,000/año</strong><br>
-                        &nbsp;&nbsp;• 1,000 usuarios → USD $2,000/mes → <strong>USD $24,000/año</strong><br>
-                        &nbsp;&nbsp;• 2,000 usuarios → USD $4,000/mes → <strong>USD $48,000/año</strong><br>
-                        <em>Nota: Existe un precio educativo reducido (~USD $0.32/usuario/mes). Consultar con el partner
-                            de Microsoft.</em>
-                    </td>
-                </tr>
-                <tr>
-                    <td><strong>Intune Suite (alternativa)</strong><br><span
-                            style="font-size:12px;color:#64748b;">Incluye Cloud PKI + Remote Help + EPM + Analytics +
-                            más</span></td>
-                    <td>Por usuario / mes</td>
-                    <td>USD $10.00 / usuario / mes</td>
-                    <td>Evaluar si se necesitan los demás componentes</td>
-                </tr>
-            </table>
-
-            <h3>Infraestructura AWS — Servidor Mothership</h3>
+            <h3>Infraestructura AWS — EJBCA (Autoridad Certificadora)</h3>
+            <p style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Estimación para la
+                <strong>Fase 3: Producción completa (30,000 a 45,000 dispositivos potenciales)</strong>.</p>
             <table class="tech-table">
                 <tr>
                     <th>Recurso AWS</th>
@@ -1469,49 +1430,64 @@
                     <th>Costo Anual (USD)</th>
                 </tr>
                 <tr>
-                    <td><strong>EC2 Instance</strong><br><span style="font-size:12px;color:#64748b;">Mothership
-                            FreeRADIUS</span></td>
+                    <td><strong>EC2 Instance</strong><br><span style="font-size:12px;color:#64748b;">EJBCA + PostgreSQL
+                            (Docker)</span></td>
+                    <td>m5.large (2 vCPU, 8 GB RAM)<br>Ubuntu 24.04 LTS</td>
+                    <td>~$69.00<br><span style="font-size:11px;">(con Reserved Instance 1 año)</span></td>
+                    <td>~$828.00</td>
+                </tr>
+                <tr>
+                    <td><strong>EBS Storage</strong><br><span style="font-size:12px;color:#64748b;">DB, Logs,
+                            Certificados</span></td>
+                    <td>gp3, 100 GB</td>
+                    <td>~$8.00</td>
+                    <td>~$96.00</td>
+                </tr>
+                <tr>
+                    <td><strong>Snapshots / Backups</strong></td>
+                    <td>EBS Snapshots Automáticos</td>
+                    <td>~$5.00</td>
+                    <td>~$60.00</td>
+                </tr>
+                <tr>
+                    <td><strong>Data Transfer & IP</strong></td>
+                    <td>Elastic IP + Salida a Internet</td>
+                    <td>~$5.00</td>
+                    <td>~$60.00</td>
+                </tr>
+                <tr style="background: #f0fdf4;">
+                    <td colspan="2" style="font-weight:700; text-align:right;">Subtotal AWS EJBCA</td>
+                    <td style="font-weight:700;">~$87.00</td>
+                    <td style="font-weight:700;">~$1,044.00</td>
+                </tr>
+            </table>
+
+            <h3>Infraestructura AWS — Servidor Mothership (FreeRADIUS)</h3>
+            <table class="tech-table">
+                <tr>
+                    <th>Recurso AWS</th>
+                    <th>Tipo / Especificación</th>
+                    <th>Costo Mensual (USD)</th>
+                    <th>Costo Anual (USD)</th>
+                </tr>
+                <tr>
+                    <td><strong>EC2 Instance</strong><br><span style="font-size:12px;color:#64748b;">FreeRADIUS
+                            Mothership</span></td>
                     <td>t3.medium (2 vCPU, 4 GB RAM)<br>Ubuntu 24.04 LTS</td>
                     <td>~$30 – $35</td>
                     <td>~$360 – $420</td>
                 </tr>
                 <tr>
-                    <td><strong>Elastic IP</strong></td>
-                    <td>1 IP estática asignada a Mothership</td>
-                    <td>~$3.65 (si está asociada)</td>
-                    <td>~$44</td>
-                </tr>
-                <tr>
-                    <td><strong>EBS Storage</strong><br><span style="font-size:12px;color:#64748b;">Disco del sistema +
-                            logs</span></td>
-                    <td>gp3, 30 GB</td>
-                    <td>~$2.40</td>
-                    <td>~$29</td>
-                </tr>
-                <tr>
-                    <td><strong>Snapshots / Backups</strong><br><span style="font-size:12px;color:#64748b;">Backup
-                            diario automático</span></td>
-                    <td>EBS Snapshots incrementales</td>
-                    <td>~$3 – $5</td>
-                    <td>~$36 – $60</td>
-                </tr>
-                <tr>
-                    <td><strong>Data Transfer</strong><br><span style="font-size:12px;color:#64748b;">Tráfico RADIUS
-                            (bajo volumen)</span></td>
-                    <td>Salida a Internet ~5 GB/mes</td>
-                    <td>~$0.50</td>
-                    <td>~$6</td>
-                </tr>
-                <tr>
-                    <td><strong>CloudWatch Monitoring</strong></td>
-                    <td>Métricas básicas + alarmas</td>
-                    <td>~$3 – $5</td>
-                    <td>~$36 – $60</td>
+                    <td><strong>Otros Recursos</strong><br><span style="font-size:12px;color:#64748b;">EBS, Snapshots,
+                            IP, CloudWatch</span></td>
+                    <td>gp3 30GB, IP elástica, Backup diario</td>
+                    <td>~$15.00</td>
+                    <td>~$180.00</td>
                 </tr>
                 <tr style="background: #f0fdf4;">
-                    <td colspan="2" style="font-weight:700; text-align:right;">Subtotal AWS (estimado)</td>
-                    <td style="font-weight:700;">~$43 – $54</td>
-                    <td style="font-weight:700;">~$511 – $619</td>
+                    <td colspan="2" style="font-weight:700; text-align:right;">Subtotal AWS FreeRADIUS</td>
+                    <td style="font-weight:700;">~$45 – $50</td>
+                    <td style="font-weight:700;">~$540 – $600</td>
                 </tr>
             </table>
 
@@ -1525,18 +1501,18 @@
                 <tr>
                     <td><strong>VM Satellite (SAT-LIMA-01)</strong></td>
                     <td>Ubuntu 24.04 en VMware existente (2 vCPU, 2 GB RAM)</td>
-                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional (infraestructura existente)</td>
+                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional</td>
                 </tr>
                 <tr>
                     <td><strong>Access Points</strong></td>
                     <td>Ubiquiti UniFi y Ruckus ya desplegados en el CRAI</td>
-                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional (infraestructura existente)</td>
+                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional</td>
                 </tr>
                 <tr>
                     <td><strong>Satellites adicionales</strong><br><span style="font-size:12px;color:#64748b;">Fase 3:
                             Juliaca y Tarapoto</span></td>
                     <td>VM en VMware existente por campus</td>
-                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional (infraestructura existente)</td>
+                    <td style="color: #16a34a; font-weight:600;">Sin costo adicional</td>
                 </tr>
             </table>
 
@@ -1548,37 +1524,38 @@
                     <th>Notas</th>
                 </tr>
                 <tr>
-                    <td><strong>Microsoft Cloud PKI (add-on)</strong></td>
-                    <td>$12,000 – $48,000</td>
-                    <td>Depende del número de usuarios (500–2,000). Posible precio educativo reducido.</td>
+                    <td><strong>Licencia PKI (EJBCA CE)</strong></td>
+                    <td>$0.00</td>
+                    <td>Sustituye a Azure Cloud PKI (Ahorro > $48k/año)</td>
                 </tr>
                 <tr>
-                    <td><strong>Infraestructura AWS</strong></td>
-                    <td>$511 – $619</td>
-                    <td>Mothership RADIUS + backups + monitoreo</td>
+                    <td><strong>AWS: EJBCA (30k-45k disp.)</strong></td>
+                    <td>~$1,044.00</td>
+                    <td>m5.large + 100GB EBS + Backups</td>
+                </tr>
+                <tr>
+                    <td><strong>AWS: FreeRADIUS Mothership</strong></td>
+                    <td>~$540.00 – $600.00</td>
+                    <td>t3.medium + 30GB EBS + Backups</td>
                 </tr>
                 <tr>
                     <td><strong>Infraestructura Local</strong></td>
-                    <td>$0</td>
+                    <td>$0.00</td>
                     <td>Uso de VMware y Access Points existentes</td>
-                </tr>
-                <tr>
-                    <td><strong>Software (FreeRADIUS)</strong></td>
-                    <td>$0</td>
-                    <td>Open source (GPLv2)</td>
                 </tr>
                 <tr style="background: linear-gradient(135deg, #eff6ff, #dbeafe);">
                     <td style="font-weight:700; font-size:15px;">TOTAL ESTIMADO</td>
-                    <td style="font-weight:700; font-size:15px;">$12,511 – $48,619 / año</td>
-                    <td style="font-weight:600;">El costo principal es el licenciamiento de Cloud PKI</td>
+                    <td style="font-weight:700; font-size:15px;">~$1,584 – $1,644 / año</td>
+                    <td style="font-weight:600;">Todo basado en infraestructura cloud propia y software open source</td>
                 </tr>
             </table>
 
             <div class="callout success">
-                <p><strong>Oportunidad de ahorro:</strong> Si Microsoft extiende la inclusión de Cloud PKI a licencias
-                    Education A5 (como lo ha hecho con E5), el costo del proyecto se reduciría únicamente a la
-                    infraestructura AWS (~USD $550/año), convirtiendo esta solución en una de las más económicas
-                    posibles para autenticación Zero-Trust a nivel institucional.</p>
+                <p><strong>Impacto de la Decisión:</strong> El cambio pragmático de Microsoft Cloud PKI en favor de
+                    EJBCA Community Edition supone un ahorro anual de más del <strong>95% en gastos operativos
+                        (OPEX)</strong>. Esta decisión permite mantener un nivel de seguridad empresarial (Zero-Trust,
+                    EAP-TLS e integración SCEP nativa con Intune) pagando únicamente por la infraestructura de cómputo
+                    en AWS.</p>
             </div>
         </div>
 
