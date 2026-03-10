@@ -15,9 +15,10 @@ flowchart TD
     CONFIG --> INSTALL["03a — Instalación Satellite"]
     INSTALL --> PROXY["03b — Configuración Proxy"]
     
-    CONFIG --> PKI["04a — Cloud PKI"]
+    CONFIG --> PKI["04a — PKI (Arquitectura Madre)"]
     PKI --> INTUNE["04b — Perfiles Intune"]
     INTUNE --> ENTRA["04c — Entra ID"]
+    ENTRA --> ADR["08 — ADR Arquitectura"]
     
     PROXY --> MON["05a — Monitoreo"]
     MON --> MAINT["05b — Mantenimiento"]
@@ -32,6 +33,7 @@ flowchart TD
     style PKI fill:#107c10,color:#fff
     style INTUNE fill:#5c2d91,color:#fff
     style ENTRA fill:#0078d4,color:#fff
+    style ADR fill:#0f766e,color:#fff
     style MON fill:#d97706,color:#fff
     style MAINT fill:#d97706,color:#fff
     style TROUBLE fill:#dc2626,color:#fff
@@ -65,7 +67,8 @@ flowchart TD
 
 | Documento | Descripción | Estado |
 |---|---|---|
-| [cloud-pki-config.md](04-identidad-y-pki/cloud-pki-config.md) | Root CA, Issuing CA, despliegue de certs en la Mothership, inventario de certificados | ✅ Completo |
+| [arquitectura-pki-mothership.md](04-identidad-y-pki/arquitectura-pki-mothership.md) | Rol de PKI en Mothership-Satellite, flujo EAP-TLS, integración FreeRADIUS ↔ PKI ↔ Intune/Entra y límites de este repositorio | ✅ Completo |
+| [cloud-pki-config.md](04-identidad-y-pki/cloud-pki-config.md) | Referencia histórica de configuración PKI en pilotos iniciales | ✅ Completo |
 | [perfiles-intune.md](04-identidad-y-pki/perfiles-intune.md) | Perfil de Confianza (Root CA), Perfil SCEP, Perfil Wi-Fi (EAP-TLS auto-connect) | 🔶 Paso 3 (Wi-Fi) pendiente |
 | [microsoft-entra-id.md](04-identidad-y-pki/microsoft-entra-id.md) | Identidad Zero Trust, App Registration, integración LDAP futura | 🔶 App Registration + LDAP pendientes |
 
@@ -84,6 +87,13 @@ flowchart TD
 
 ---
 
+
+### 08 — ADR (Architecture Decision Records)
+
+| Documento | Descripción | Estado |
+|---|---|---|
+| [0001-pki-repos-separados.md](08-adr/0001-pki-repos-separados.md) | Decisión arquitectónica: separar operación PKI en repositorios dedicados | ✅ Completo |
+
 ## Orden de Lectura Recomendado
 
 | # | Fase | Documento | Acción |
@@ -91,13 +101,15 @@ flowchart TD
 | 1 | **Entender** | [flujo-autenticacion.md](01-arquitectura/flujo-autenticacion.md) | Leer la arquitectura completa |
 | 2 | **Desplegar** | [despliegue-instancia.md](02-mothership-aws/despliegue-instancia.md) | Crear la instancia EC2 |
 | 3 | **Configurar** | [configuracion-radius.md](02-mothership-aws/configuracion-radius.md) | EAP-TLS + caché TLS |
-| 4 | **Certificar** | [cloud-pki-config.md](04-identidad-y-pki/cloud-pki-config.md) | Crear CAs + instalar certs |
-| 5 | **Distribuir** | [perfiles-intune.md](04-identidad-y-pki/perfiles-intune.md) | Perfiles SCEP + Wi-Fi |
-| 6 | **Satellite** | [instalacion-ubuntu.md](03-satellites-locales/instalacion-ubuntu.md) | Instalar FreeRADIUS local |
-| 7 | **Proxy** | [configuracion-proxy.md](03-satellites-locales/configuracion-proxy.md) | Configurar proxy + caché |
-| 8 | **Operar** | [monitoreo-logs.md](05-operaciones/monitoreo-logs.md) | Monitorear y verificar |
-| 9 | **Mantener** | [mantenimiento.md](05-operaciones/mantenimiento.md) | Runbook operativo |
-| 10 | **Resolver** | [errores-comunes.md](06-troubleshooting/errores-comunes.md) | Troubleshooting |
+| 4 | **Alinear PKI** | [arquitectura-pki-mothership.md](04-identidad-y-pki/arquitectura-pki-mothership.md) | Entender alcance, integración y límites |
+| 5 | **Certificar** | [cloud-pki-config.md](04-identidad-y-pki/cloud-pki-config.md) | Revisar referencia histórica de pilotos |
+| 6 | **Distribuir** | [perfiles-intune.md](04-identidad-y-pki/perfiles-intune.md) | Perfiles SCEP + Wi-Fi |
+| 7 | **Satellite** | [instalacion-ubuntu.md](03-satellites-locales/instalacion-ubuntu.md) | Instalar FreeRADIUS local |
+| 8 | **Proxy** | [configuracion-proxy.md](03-satellites-locales/configuracion-proxy.md) | Configurar proxy + caché |
+| 9 | **Operar** | [monitoreo-logs.md](05-operaciones/monitoreo-logs.md) | Monitorear y verificar |
+| 10 | **Mantener** | [mantenimiento.md](05-operaciones/mantenimiento.md) | Runbook operativo |
+| 11 | **Decisión** | [0001-pki-repos-separados.md](08-adr/0001-pki-repos-separados.md) | Entender separación de responsabilidades PKI |
+| 12 | **Resolver** | [errores-comunes.md](06-troubleshooting/errores-comunes.md) | Troubleshooting |
 
 ---
 

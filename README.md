@@ -34,6 +34,67 @@ flowchart LR
     style Device fill:#d97706,color:#fff
 ```
 
+## 🔐 Sección PKI (Arquitectura Madre)
+
+Este repositorio **no implementa una PKI**; define cómo la PKI se integra con el patrón **Mothership-Satellite** para Wi-Fi empresarial con EAP-TLS.
+
+### Rol de la PKI en Mothership-Satellite
+
+- Emite y gestiona la cadena de confianza (Root CA / Issuing CA) consumida por clientes 802.1X.
+- Publica revocación/estado de certificados para decisiones de autenticación.
+- Entrega a Intune los perfiles y plantillas necesarios para inscripción de certificados de dispositivo/usuario.
+- Permite que FreeRADIUS (Mothership) valide identidad criptográfica antes de aplicar RBAC/VLAN.
+
+### Repositorios externos de PKI (fuente de verdad)
+
+- [`upeu-pki-architecture`](https://github.com/UPeU-CRAI/upeu-pki-architecture): arquitectura, gobierno, políticas y ciclo de vida PKI.
+- [`upeu-ejbca-pki`](https://github.com/UPeU-CRAI/upeu-ejbca-pki): implementación operativa de EJBCA, hardening y operación de CA.
+
+> [!IMPORTANT]
+> En este repositorio solo se documenta la integración **FreeRADIUS ↔ PKI ↔ Intune/Entra**. La configuración interna de CA, secretos, HSM, despliegues y scripts PKI vive en repositorios separados.
+
+### Diagrama de integración de alto nivel
+
+```mermaid
+flowchart LR
+    subgraph Campus["Campus UPeU"]
+        DEV["Dispositivo corporativo"]
+        AP["AP / Controlador Wi-Fi"]
+        SAT["Satellite FreeRADIUS"]
+    end
+
+    subgraph Nucleo["Mothership RADIUS"]
+        MOTH["FreeRADIUS Master"]
+    end
+
+    subgraph Identidad["Identidad y PKI"]
+        ENTRA["Microsoft Entra ID"]
+        INTUNE["Microsoft Intune"]
+        PKI["PKI corporativa\n(repos externos)"]
+    end
+
+    DEV -->|802.1X EAP-TLS| AP
+    AP -->|RADIUS 1812/1813| SAT
+    SAT -->|Proxy RADIUS| MOTH
+    MOTH -->|Valida cadena y estado| PKI
+    ENTRA -->|Identidad/grupos| INTUNE
+    PKI -->|Plantillas y emisión| INTUNE
+    INTUNE -->|Perfil Wi-Fi + certificado| DEV
+```
+
+### Límites del repositorio
+
+Este repositorio **sí incluye**:
+- Diseño Mothership-Satellite y operación de FreeRADIUS.
+- Integración funcional con PKI e Intune/Entra a nivel de arquitectura.
+- Guías de despliegue de Mothership y Satellites.
+
+Este repositorio **no debe incluir**:
+- Scripts de instalación de CA/RA/OCSP ni automatizaciones PKI.
+- Material criptográfico (keys, CSR privados, backups de CA, secretos).
+- Hardening interno de EJBCA u otro software PKI (eso pertenece a `upeu-ejbca-pki`).
+- ADRs/gobierno PKI detallado (eso pertenece a `upeu-pki-architecture`).
+
 ### Glosario
 
 | Componente | IP | Rol |
