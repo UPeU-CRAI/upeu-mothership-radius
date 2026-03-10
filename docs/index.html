@@ -767,14 +767,15 @@
                 <li><a href="#seccion-5">Arquitectura Técnica</a></li>
                 <li><a href="#seccion-6">Stack Tecnológico</a></li>
                 <li><a href="#seccion-7">Flujo de Autenticación EAP-TLS</a></li>
-                <li><a href="#seccion-8">Modelo de Métricas y Datos</a></li>
-                <li><a href="#seccion-9">Fases de Implementación</a></li>
-                <li><a href="#seccion-10">Indicadores de Éxito (KPIs)</a></li>
-                <li><a href="#seccion-11">Análisis de Riesgos</a></li>
-                <li><a href="#seccion-12">Estimación de Inversión y Costos</a></li>
-                <li><a href="#seccion-13">Análisis Comparativo Antes / Después</a></li>
-                <li><a href="#seccion-14">Equipo y Stakeholders</a></li>
-                <li><a href="#seccion-15">Repositorio Técnico</a></li>
+                <li><a href="#seccion-8">Gobierno PKI e Integración</a></li>
+                <li><a href="#seccion-9">Modelo de Métricas y Datos</a></li>
+                <li><a href="#seccion-10">Fases de Implementación</a></li>
+                <li><a href="#seccion-11">Indicadores de Éxito (KPIs)</a></li>
+                <li><a href="#seccion-12">Análisis de Riesgos</a></li>
+                <li><a href="#seccion-13">Estimación de Inversión y Costos</a></li>
+                <li><a href="#seccion-14">Análisis Comparativo Antes / Después</a></li>
+                <li><a href="#seccion-15">Equipo y Stakeholders</a></li>
+                <li><a href="#seccion-16">Repositorio Técnico</a></li>
             </ol>
         </div>
 
@@ -1155,9 +1156,29 @@
                 de asistencia con timestamp, MAC, usuario e identificador de AP (ubicación).</p>
         </div>
 
-        <!-- SECTION 8: MODELO DE MÉTRICAS -->
+        <!-- SECTION 8: GOBIERNO PKI E INTEGRACIÓN -->
         <div id="seccion-8" class="section page-break">
             <span class="section-number">SECCIÓN 08</span>
+            <h2 class="section-title">Gobierno PKI e Integración</h2>
+            <p>La arquitectura madre de UPeU define la PKI como un dominio separado del plano AAA de FreeRADIUS.
+                Este repositorio documenta únicamente la integración Mothership-Satellite con identidad y confianza
+                digital para EAP-TLS.</p>
+            <h3>Repositorios externos oficiales de PKI</h3>
+            <ul>
+                <li><strong>upeu-pki-architecture</strong>: decisiones de arquitectura, gobierno y políticas PKI.</li>
+                <li><strong>upeu-ejbca-pki</strong>: implementación y operación técnica de EJBCA.</li>
+            </ul>
+            <div class="callout warning">
+                <p><strong>Límites del repositorio:</strong> no incluir scripts de despliegue PKI, secretos,
+                    llaves privadas ni runbooks internos de CA/OCSP en <code>upeu-mothership-radius</code>.</p>
+            </div>
+            <p>Esta separación está formalizada en el ADR
+                <code>docs/08-adr/0001-pki-repos-separados.md</code>.</p>
+        </div>
+
+        <!-- SECTION 9: MODELO DE MÉTRICAS -->
+        <div id="seccion-9" class="section page-break">
+            <span class="section-number">SECCIÓN 09</span>
             <h2 class="section-title">Modelo de Métricas y Datos</h2>
             <p>Una de las ventajas más significativas de esta arquitectura es la capacidad de generar métricas de uso
                 automatizadas a partir de los datos de sesión RADIUS, sin necesidad de infraestructura adicional.</p>
@@ -1240,9 +1261,9 @@
             </table>
         </div>
 
-        <!-- SECTION 9: FASES DE IMPLEMENTACIÓN -->
-        <div id="seccion-9" class="section page-break">
-            <span class="section-number">SECCIÓN 09</span>
+        <!-- SECTION 10: FASES DE IMPLEMENTACIÓN -->
+        <div id="seccion-10" class="section page-break">
+            <span class="section-number">SECCIÓN 10</span>
             <h2 class="section-title">Fases de Implementación</h2>
 
             <div class="phase-card phase-1">
@@ -1288,8 +1309,8 @@
         </div>
 
         <!-- SECTION 10: KPIs -->
-        <div id="seccion-10" class="section page-break">
-            <span class="section-number">SECCIÓN 10</span>
+        <div id="seccion-11" class="section page-break">
+            <span class="section-number">SECCIÓN 11</span>
             <h2 class="section-title">Indicadores de Éxito (KPIs)</h2>
 
             <div class="kpi-grid">
@@ -1351,8 +1372,8 @@
         </div>
 
         <!-- SECTION 11: RIESGOS -->
-        <div id="seccion-11" class="section">
-            <span class="section-number">SECCIÓN 11</span>
+        <div id="seccion-12" class="section">
+            <span class="section-number">SECCIÓN 12</span>
             <h2 class="section-title">Análisis de Riesgos</h2>
             <table class="tech-table">
                 <tr>
@@ -1401,8 +1422,8 @@
         </div>
 
         <!-- SECTION 12: INVERSIÓN Y COSTOS -->
-        <div id="seccion-12" class="section page-break">
-            <span class="section-number">SECCIÓN 12</span>
+        <div id="seccion-13" class="section page-break">
+            <span class="section-number">SECCIÓN 13</span>
             <h2 class="section-title">Estimación de Inversión y Costos</h2>
             <p>A continuación se detalla el análisis de costos del proyecto, considerando que la UPeU cuenta actualmente
                 con licenciamiento <strong>Microsoft 365 A3 y A5 para Educación</strong>. Estas licencias incluyen
@@ -1560,8 +1581,8 @@
         </div>
 
         <!-- SECTION 13: COMPARACIÓN -->
-        <div id="seccion-13" class="section page-break">
-            <span class="section-number">SECCIÓN 13</span>
+        <div id="seccion-14" class="section page-break">
+            <span class="section-number">SECCIÓN 14</span>
             <h2 class="section-title">Análisis Comparativo: Antes vs. Después</h2>
 
             <div class="compare-grid">
@@ -1596,8 +1617,8 @@
         </div>
 
         <!-- SECTION 13: EQUIPO -->
-        <div id="seccion-14" class="section">
-            <span class="section-number">SECCIÓN 14</span>
+        <div id="seccion-15" class="section">
+            <span class="section-number">SECCIÓN 15</span>
             <h2 class="section-title">Equipo y Stakeholders</h2>
 
             <div class="stakeholder-grid">
@@ -1629,14 +1650,15 @@
         </div>
 
         <!-- SECTION 14: REPOSITORIO -->
-        <div id="seccion-15" class="section">
-            <span class="section-number">SECCIÓN 15</span>
+        <div id="seccion-16" class="section">
+            <span class="section-number">SECCIÓN 16</span>
             <h2 class="section-title">Repositorio Técnico</h2>
-            <p>Toda la documentación técnica, scripts de despliegue y configuraciones del proyecto se encuentran
-                versionados en un repositorio Git centralizado, siguiendo prácticas de Infrastructure as Code (IaC).</p>
+            <p>Toda la documentación técnica y la operación RADIUS del proyecto se encuentran versionadas en este repositorio,
+                siguiendo prácticas de Infrastructure as Code (IaC). La operación PKI se mantiene en repositorios separados por seguridad.</p>
 
             <div class="callout">
-                <p><strong>Repositorio:</strong> <code>github.com/UPeU-CRAI/upeu-mothership-radius</code></p>
+                <p><strong>Repositorio principal (arquitectura madre RADIUS):</strong> <code>github.com/UPeU-CRAI/upeu-mothership-radius</code></p>
+                <p><strong>Repositorios PKI relacionados:</strong> <code>github.com/UPeU-CRAI/upeu-pki-architecture</code> y <code>github.com/UPeU-CRAI/upeu-ejbca-pki</code></p>
             </div>
 
             <h3>Estructura del Repositorio</h3>
@@ -1695,12 +1717,16 @@
                     <td>Reenvío de peticiones hacia AWS</td>
                 </tr>
                 <tr>
-                    <td><code>04-identidad-y-pki/cloud-pki-config.md</code></td>
-                    <td>Configuración de Microsoft Cloud PKI (Root CA + Issuing CA)</td>
+                    <td><code>04-identidad-y-pki/arquitectura-pki-mothership.md</code></td>
+                    <td>Rol de PKI en Mothership-Satellite y límites de alcance del repositorio</td>
                 </tr>
                 <tr>
                     <td><code>04-identidad-y-pki/perfiles-intune.md</code></td>
                     <td>Perfiles SCEP y Wi-Fi con checklist de configuración</td>
+                </tr>
+                <tr>
+                    <td><code>08-adr/0001-pki-repos-separados.md</code></td>
+                    <td>ADR de separación entre repositorio RADIUS y repositorios PKI</td>
                 </tr>
             </table>
         </div>
